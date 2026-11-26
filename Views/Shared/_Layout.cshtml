@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] · VisionCRM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="mark">V</div>
+                <div>
+                    <div class="name">VisionCRM</div>
+                    <div class="sub">Lead Management</div>
+                </div>
+            </div>
+
+@inject CrmLeadManagement.Models.AppDbContext LayoutDb
+@{
+    var activePage = ViewData["ActivePage"] as string ?? "";
+    var financeActive = activePage.StartsWith("Finance");
+    var workActive = activePage.StartsWith("Work");
+    var teamActive = activePage.StartsWith("Team");
+    var portfolioActive = activePage.StartsWith("Portfolio");
+    var billingActive = activePage.StartsWith("AdminSubscription") || activePage.StartsWith("AdminPaymentStatus") || activePage.StartsWith("Billing");
+
+    var currentLoggedInUser = CrmLeadManagement.Security.PermissionChecker.GetCurrentUser(LayoutDb, User);
+    var userName = currentLoggedInUser?.Name ?? User.Identity?.Name ?? "User";
+    var userRole = currentLoggedInUser?.Role ?? (User.IsInRole("Admin") ? "Admin" : "Staff");
+
+    var userInitials = "US";
+    if (!string.IsNullOrWhiteSpace(userName))
+    {
+        var parts = userName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        userInitials = parts.Length >= 2 
+            ? $"{parts[0][0]}{parts[^1][0]}".ToUpper() 
+            : userName.Substring(0, Math.Min(2, userName.Length)).ToUpper();
+    }
+
+    bool canViewModule(string moduleName)
+    {
+        if (User.IsInRole("Admin")) return true;
+        return CrmLeadManagement.Security.PermissionChecker.HasModulePermission(LayoutDb, currentLoggedInUser, moduleName, "View");
+    }
+}
+            <nav class="sidebar-nav">
+                @if (userRole == "Super Admin")
+                {
+                    var cmsActive = activePage.StartsWith("SuperAdminCms");
+                    <div class="sidebar-section-label">SUPERADMIN SAAS</div>
+                    
+                    <a class="sidebar-link @(activePage == "SuperAdminDashboard" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Dashboard">
+                        <i class="bi bi-grid-1x2-fill"></i> Dashboard
+                    </a>
+                    
+                    <a class="sidebar-link @(activePage == "SuperAdminUsers" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Users">
+                        <i class="bi bi-buildings"></i> User
+                    </a>
+
+                    <a class="sidebar-link @(activePage == "SuperAdminSubscriptions" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Subscriptions">
+                        <i class="bi bi-credit-card-2-front-fill"></i> Subscription
+                    </a>
+
+                    <a class="sidebar-link @(activePage == "SuperAdminBankRequests" ? "active" : "")" asp-controller="SuperAdmin" asp-action="BankRequests">
+                        <i class="bi bi-bank2"></i> Bank Request
+                        @{
+                            var pendingBankCount = LayoutDb.BankTransferRequests.Count(r => r.Status == "Pending");
+                        }
+                        @if (pendingBankCount > 0)
+                        {
+                            <span class="badge bg-warning text-dark ms-auto" style="font-size:11px;font-weight:700;border-radius:10px;padding:2px 7px;">@pendingBankCount</span>
+                        }
+                    </a>
+
+                    <div class="sidebar-group @(cmsActive ? "open" : "")">
+                        <button type="button" class="sidebar-link sidebar-group-toggle @(cmsActive ? "active" : "")" aria-expanded="@(cmsActive ? "true" : "false")" onclick="toggleSidebarGroup(this)">
+                            <i class="bi bi-layout-text-window-reverse"></i> CMS
+                            <i class="bi bi-chevron-down sidebar-caret"></i>
+                        </button>
+                        <div class="sidebar-submenu">
+                            <a class="sidebar-sublink @(activePage == "SuperAdminCmsLanding" ? "active" : "")" asp-controller="SuperAdmin" asp-action="CmsLandingPage">
+                                <i class="bi bi-browser-chrome"></i> Landing Page
+                            </a>
+                            <a class="sidebar-sublink @(activePage == "SuperAdminCmsFaqs" ? "active" : "")" asp-controller="SuperAdmin" asp-action="CmsFaqs">
+                                <i class="bi bi-question-circle"></i> FAQ Articles
+                            </a>
+                            <a class="sidebar-sublink @(activePage == "SuperAdminCmsPricing" ? "active" : "")" asp-controller="SuperAdmin" asp-action="CmsPricing">
+                                <i class="bi bi-tags"></i> Pricing &amp; Plans
+                            </a>
+                        </div>
+                    </div>
+
+                    <a class="sidebar-link @(activePage == "SuperAdminEmailTemplates" ? "active" : "")" asp-controller="SuperAdmin" asp-action="EmailTemplates">
+                        <i class="bi bi-envelope-paper-fill"></i> Email Templates
+                    </a>
+
+                    <a class="sidebar-link @(activePage == "SuperAdminSettings" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Settings">
+                        <i class="bi bi-gear-fill"></i> Setting
+                    </a>
+                }
+                else
+                {
+                    @if (canViewModule("Lead List") || canViewModule("Assigned Leads"))
+                    {
+                        <div class="sidebar-section-label">LEADS</div>
+                        @if (canViewModule("Lead List"))
+                        {
+                            <a class="sidebar-link @(activePage == "LeadList" ? "active" : "")" asp-controller="Lead" asp-action="List">
+                                <i class="bi bi-person-lines-fill"></i> Lead List
+                            </a>
+                        }
+                        @if (canViewModule("Assigned Leads"))
+                        {
+                            <a class="sidebar-link @(activePage == "AssignedList" ? "active" : "")" asp-controller="Lead" asp-action="Assigned">
+                                <i class="bi bi-diagram-3"></i> Assigned Leads
+                            </a>
+                        }
+                    }
+
+                    @if (canViewModule("Product"))
+                    {
+                        <div class="sidebar-section-label">PORTFOLIO MANAGEMENT</div>
+                        <div class="sidebar-group @(portfolioActive ? "open" : "")">
+                            <button type="button" class="sidebar-link sidebar-group-toggle @(portfolioActive ? "active" : "")" aria-expanded="@(portfolioActive ? "true" : "false")" onclick="toggleSidebarGroup(this)">
+                                <i class="bi bi-collection"></i> Portfolio Management
+                                <i class="bi bi-chevron-down sidebar-caret"></i>
+                            </button>
+                            <div class="sidebar-submenu">
+                                <a class="sidebar-sublink @(activePage == "PortfolioProduct" ? "active" : "")" asp-controller="Product" asp-action="Index">
+                                    <i class="bi bi-box-seam"></i> Product
+                                </a>
+                            </div>
+                        </div>
+                    }
+
+                    @if (canViewModule("Estimation") || canViewModule("Quotation") || canViewModule("Proposal") || canViewModule("Invoice") || canViewModule("Payment"))
+                    {
+                        <div class="sidebar-section-label">FINANCE</div>
+                        <div class="sidebar-group @(financeActive ? "open" : "")">
+                            <button type="button" class="sidebar-link sidebar-group-toggle @(financeActive ? "active" : "")" aria-expanded="@(financeActive ? "true" : "false")" onclick="toggleSidebarGroup(this)">
+                                <i class="bi bi-cash-coin"></i> Finance
+                                <i class="bi bi-chevron-down sidebar-caret"></i>
+                            </button>
+                            <div class="sidebar-submenu">
+                                @if (canViewModule("Estimation"))
+                                {
+                                    <a class="sidebar-sublink @(activePage == "FinanceEstimation" ? "active" : "")" asp-controller="Finance" asp-action="EstimationList">
+                                        <i class="bi bi-calculator"></i> Estimation
+                                    </a>
+                                }
+                                @if (canViewModule("Quotation"))
+                                {
+                                    <a class="sidebar-sublink @(activePage == "FinanceQuotation" ? "active" : "")" asp-controller="Finance" asp-action="QuotationList">
+                                        <i class="bi bi-file-earmark-text"></i> Quotation
+                                    </a>
+                                }
+                                @if (canViewModule("Proposal"))
+                                {
+                                    <a class="sidebar-sublink @(activePage == "FinanceProposal" ? "active" : "")" asp-controller="Finance" asp-action="ProposalList">
+                                        <i class="bi bi-file-earmark-richtext"></i> Proposal
+                                    </a>
+                                }
+                                @if (canViewModule("Invoice"))
+                                {
+                                    <a class="sidebar-sublink @(activePage == "FinanceInvoice" ? "active" : "")" asp-controller="Finance" asp-action="InvoiceList">
+                                        <i class="bi bi-receipt"></i> Invoice
+                                    </a>
+                                }
+                                @if (canViewModule("Payment"))
+                                {
+                                    <a class="sidebar-sublink @(activePage == "FinancePayment" ? "active" : "")" asp-controller="Finance" asp-action="PaymentList">
+                                        <i class="bi bi-cash-stack"></i> Payment
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (canViewModule("Project") || canViewModule("Milestone") || canViewModule("Task") || canViewModule("Report") || canViewModule("Member"))
+                    {
+                        <div class="sidebar-section-label">WORK</div>
+                        <div class="sidebar-group @(workActive ? "open" : "")">
+                            <button type="button" class="sidebar-link sidebar-group-toggle @(workActive ? "active" : "")" aria-expanded="@(workActive ? "true" : "false")" onclick="toggleSidebarGroup(this)">
+                                <i class="bi bi-briefcase"></i> Work
+                                <i class="bi bi-chevron-down sidebar-caret"></i>
+                            </button>
+                            <div class="sidebar-submenu">
+                                @if (canViewModule("Project"))
+                                {
+                                    <a class="sidebar-sublink @(activePage == "WorkProject" ? "active" : "")" asp-controller="Work" asp-action="Projects">
+                                        <i class="bi bi-folder2-open"></i> Project
+                                    </a>
+                                }
+                                @if (canViewModule("Milestone"))
+                                {
+                                    <a class="sidebar-sublink @(activePage == "WorkMilestone" ? "active" : "")" asp-controller="Work" asp-action="Milestones">
+                                        <i class="bi bi-flag"></i> Milestone
+                                    </a>
+                                }
+                                @if (canViewModule("Task"))
+                                {
+                                    <a class="sidebar-sublink @(activePage == "WorkTask" ? "active" : "")" asp-controller="Work" asp-action="Tasks">
+                                        <i class="bi bi-check2-square"></i> Task
+                                    </a>
+                                }
+                                @if (canViewModule("Report"))
+                                {
+                                    <a class="sidebar-sublink @(activePage == "WorkReport" ? "active" : "")" asp-controller="Work" asp-action="Reports">
+                                        <i class="bi bi-bar-chart-line"></i> Report
+                                    </a>
+                                }
+                                @if (canViewModule("Member"))
+                                {
+                                    <a class="sidebar-sublink @(activePage == "WorkMember" ? "active" : "")" asp-controller="Work" asp-action="Members">
+                                        <i class="bi bi-people"></i> Member
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (canViewModule("Member") || canViewModule("Users & Roles") || canViewModule("Team Members") || canViewModule("Roles & Permissions"))
+                    {
+                        <div class="sidebar-section-label">TEAM &amp; ACCESS</div>
+                        <div class="sidebar-group @(teamActive ? "open" : "")">
+                            <button type="button" class="sidebar-link sidebar-group-toggle @(teamActive ? "active" : "")" aria-expanded="@(teamActive ? "true" : "false")" onclick="toggleSidebarGroup(this)">
+                                <i class="bi bi-people"></i> Team
+                                <i class="bi bi-chevron-down sidebar-caret"></i>
+                            </button>
+                            <div class="sidebar-submenu">
+                                @if (canViewModule("Member") || canViewModule("Users & Roles") || canViewModule("Team Members"))
+                                {
+                                    <a class="sidebar-sublink @(activePage == "TeamMembers" ? "active" : "")" asp-controller="Team" asp-action="Index">
+                                        <i class="bi bi-person-lines-fill"></i> Members
+                                    </a>
+                                }
+                                @if (canViewModule("Roles & Permissions"))
+                                {
+                                    <a class="sidebar-sublink @(activePage == "TeamRoles" ? "active" : "")" asp-controller="Team" asp-action="Roles">
+                                        <i class="bi bi-shield-lock"></i> Roles &amp; Permissions
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="sidebar-section-label">PLAN &amp; BILLING</div>
+                    <div class="sidebar-group @(billingActive ? "open" : "")">
+                        <button type="button" class="sidebar-link sidebar-group-toggle @(billingActive ? "active" : "")" aria-expanded="@(billingActive ? "true" : "false")" onclick="toggleSidebarGroup(this)">
+                            <i class="bi bi-credit-card-2-front-fill"></i> Billing
+                            <i class="bi bi-chevron-down sidebar-caret"></i>
+                        </button>
+                        <div class="sidebar-submenu">
+                            <a class="sidebar-sublink @(activePage == "AdminSubscription" ? "active" : "")" asp-controller="Subscription" asp-action="Index">
+                                <i class="bi bi-tags"></i> Subscription
+                            </a>
+                            <a class="sidebar-sublink @(activePage == "AdminPaymentStatus" ? "active" : "")" asp-controller="Subscription" asp-action="PaymentStatus">
+                                <i class="bi bi-clock-history"></i> Payment Status
+                            </a>
+                        </div>
+                    </div>
+
+                    @if (canViewModule("Settings") || canViewModule("Lead Status/Source") || canViewModule("Follow-up Settings") || canViewModule("Users & Roles"))
+                    {
+                        <div class="sidebar-section-label">SETTINGS</div>
+                        <a class="sidebar-link @(activePage == "Settings" ? "active" : "")" asp-controller="Settings" asp-action="Index">
+                            <i class="bi bi-gear"></i> Settings
+                        </a>
+                    }
+                }
+            </nav>
+
+            <div class="sidebar-foot" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;">
+                <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                    <div class="avatar">@userInitials</div>
+                    <div style="min-width:0;overflow:hidden;text-overflow:ellipsis;">
+                        <div class="who" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@userName</div>
+                        <div class="role" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@userRole</div>
+                    </div>
+                </div>
+                <a asp-controller="Auth" asp-action="Logout" title="Sign out" style="color:#64748b;font-size:16px;padding:6px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .15s ease;" onmouseover="this.style.color='#ef4444';this.style.background='#f1f5f9';" onmouseout="this.style.color='#64748b';this.style.background='transparent';">
+                    <i class="bi bi-box-arrow-right"></i>
+                </a>
+            </div>
+        </aside>
+
+        <div class="main-col">
+            @if (Context.Request.Cookies.ContainsKey("ImpersonatedBySuperAdmin"))
+            {
+                var compName = Context.Request.Cookies["ImpersonatedCompanyName"] ?? "Company";
+                var admCode = Context.Request.Cookies["ImpersonatedAdminCode"] ?? "";
+                <div style="background:linear-gradient(90deg, #1e40af, #2563eb);color:#ffffff;padding:8px 20px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(37,99,235,0.25);position:sticky;top:0;z-index:9999;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <i class="bi bi-eye-fill" style="font-size:16px;color:#bfdbfe;"></i>
+                        <span>SuperAdmin Mode: Viewing <strong>@compName</strong> (@admCode) Admin Panel</span>
+                    </div>
+                    <a asp-controller="SuperAdmin" asp-action="ExitImpersonation" class="btn btn-sm" style="background:#ffffff;color:#1e40af;font-weight:700;font-size:12px;padding:4px 14px;border-radius:6px;text-decoration:none;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                        <i class="bi bi-box-arrow-left"></i> Exit to SuperAdmin Panel
+                    </a>
+                </div>
+            }
+            <header class="topbar">
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text" placeholder="Search leads, companies, contacts..." />
+                </div>
+                <div class="topbar-right">
+                    @if (userRole == "Super Admin")
+                    {
+                        <span style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:5px;">
+                            <i class="bi bi-shield-shaded"></i> Super Admin
+                        </span>
+                    }
+                    else if (userRole == "Admin")
+                    {
+                        var tenantEffectiveId = currentLoggedInUser?.GetEffectiveAdminId() ?? currentLoggedInUser?.Id ?? 0;
+                        var headerSub = LayoutDb.CompanySubscriptions.FirstOrDefault(s => s.AdminId == tenantEffectiveId);
+                        var isTrialHead = headerSub == null || string.Equals(headerSub.Status, "Trial", StringComparison.OrdinalIgnoreCase);
+                        var isExpiredHead = headerSub != null && (string.Equals(headerSub.Status, "Expired", StringComparison.OrdinalIgnoreCase) || DateTime.UtcNow > headerSub.EndDate);
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <a asp-controller="Subscription" asp-action="Index" style="text-decoration:none;" title="Click to view & upgrade Subscription Plans">
+                                @if (isExpiredHead)
+                                {
+                                    <span style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;font-size:12px;font-weight:800;padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;">
+                                        <i class="bi bi-exclamation-octagon-fill" style="color:#dc2626;"></i> Free Trial Expired
+                                    </span>
+                                }
+                                else if (isTrialHead)
+                                {
+                                    <span style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;">
+                                        <i class="bi bi-gift-fill"></i> @(headerSub?.PlanName ?? "Free Trial") (@(headerSub?.DaysRemaining ?? 7)d)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span style="background:#dcfce7;color:#166534;border:1px solid #86efac;font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;">
+                                        <i class="bi bi-stars"></i> @(headerSub?.PlanName ?? "Active Plan")
+                                    </span>
+                                }
+                            </a>
+                            <span style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:5px;" title="Your Tenant Admin ID is @(currentLoggedInUser?.AdminCode)">
+                                <i class="bi bi-key-fill"></i> Admin ID: @(currentLoggedInUser?.AdminCode ?? $"ADM-{currentLoggedInUser?.Id:D4}")
+                            </span>
+                            @if (!string.IsNullOrWhiteSpace(currentLoggedInUser?.CompanyName))
+                            {
+                                <span style="font-size:12px;color:var(--ink-700);font-weight:600;display:inline-flex;align-items:center;gap:4px;">
+                                    <i class="bi bi-building" style="color:var(--ink-500);"></i> @currentLoggedInUser.CompanyName
+                                </span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <span style="background:#f8fafc;color:#475569;border:1px solid #cbd5e1;font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;" title="Organization">
+                            <i class="bi bi-building"></i> @(currentLoggedInUser?.CompanyName ?? currentLoggedInUser?.AdminCode ?? "Organization")
+                        </span>
+                    }
+                    <div class="topbar-icon"><i class="bi bi-bell"></i><span class="dot"></span></div>
+                    <div class="topbar-icon"><i class="bi bi-envelope"></i></div>
+                    <div style="width:1px;height:26px;background:var(--line);"></div>
+                    <div class="avatar-chip" style="position:relative;cursor:pointer;" onclick="toggleUserDropdown(event)" id="userChipBtn">
+                        <div class="initials">@userInitials</div>
+                        <div>
+                            <div style="font-size:13px;font-weight:600;">@(currentLoggedInUser?.Name ?? "User")</div>
+                            <div style="font-size:11.5px;color:var(--ink-500);">@(currentLoggedInUser?.Role ?? "Staff")</div>
+                        </div>
+                        <i class="bi bi-chevron-down" style="font-size:11px;color:var(--ink-500);margin-left:4px;"></i>
+                        <div id="userDropdownMenu" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:#ffffff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-2);min-width:200px;z-index:100;padding:6px 0;">
+                            <div style="padding:10px 14px;border-bottom:1px solid var(--line);">
+                                <div style="font-size:13px;font-weight:600;color:var(--ink-900);">@(currentLoggedInUser?.Name ?? "User")</div>
+                                <div style="font-size:11px;color:var(--ink-500);word-break:break-all;">@(currentLoggedInUser?.Email ?? "")</div>
+                            </div>
+                            <a asp-controller="Subscription" asp-action="Index" style="display:flex;align-items:center;gap:10px;padding:9px 14px;font-size:13px;color:var(--ink-700);text-decoration:none;" onmouseover="this.style.background='var(--canvas)';" onmouseout="this.style.background='transparent';">
+                                <i class="bi bi-credit-card-2-front"></i> Subscription &amp; Plans
+                            </a>
+                            <a asp-controller="Settings" asp-action="Index" style="display:flex;align-items:center;gap:10px;padding:9px 14px;font-size:13px;color:var(--ink-700);text-decoration:none;" onmouseover="this.style.background='var(--canvas)';" onmouseout="this.style.background='transparent';">
+                                <i class="bi bi-gear"></i> Settings
+                            </a>
+                            <div style="height:1px;background:var(--line);margin:4px 0;"></div>
+                            <a asp-controller="Auth" asp-action="Logout" style="display:flex;align-items:center;gap:10px;padding:9px 14px;font-size:13px;color:#dc2626;text-decoration:none;" onmouseover="this.style.background='#fef2f2';" onmouseout="this.style.background='transparent';">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                    <a asp-controller="Auth" asp-action="Logout" class="btn-logout-topbar" title="Logout from VisionCRM" style="display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:12.5px;font-weight:600;color:#dc2626;border-radius:8px;background:rgba(220,38,38,0.08);text-decoration:none;transition:all 0.15s ease;" onmouseover="this.style.background='rgba(220,38,38,0.16)';" onmouseout="this.style.background='rgba(220,38,38,0.08)';">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </header>
+
+            <main class="page-body">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        function toggleUserDropdown(e) {
+            e.stopPropagation();
+            const m = document.getElementById('userDropdownMenu');
+            if (m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+        }
+        document.addEventListener('click', () => {
+            const m = document.getElementById('userDropdownMenu');
+            if (m) m.style.display = 'none';
+        });
+    </script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

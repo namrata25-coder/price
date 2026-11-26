@@ -1,0 +1,199 @@
+@model List<CrmLeadManagement.Models.CmsFaqArticle>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "CMS: FAQ Articles · SuperAdmin Panel";
+    ViewData["ActivePage"] = "SuperAdminCmsFaqs";
+}
+
+<div class="content-header" style="margin-bottom: 24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="font-size:24px;font-weight:800;color:var(--ink-900);margin:0;">CMS &bull; FAQ Articles</h1>
+                <span style="background:#e0e7ff;color:#4338ca;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;">
+                    @Model.Count Articles Published
+                </span>
+            </div>
+            <p style="color:var(--ink-500);font-size:13.5px;margin:4px 0 0 0;">
+                Manage public knowledge base, onboarding FAQs, and pricing assistance questions.
+            </p>
+        </div>
+        <div>
+            <button type="button" class="btn" onclick="openAddFaqModal()" style="background:var(--brand-600);color:#fff;font-weight:700;padding:9px 18px;border-radius:8px;border:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                <i class="bi bi-plus-circle-fill"></i> Add FAQ Article
+            </button>
+        </div>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success" style="background:#dcfce7;border:1px solid #86efac;color:#166534;padding:12px 16px;border-radius:8px;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+        <i class="bi bi-check-circle-fill" style="font-size:18px;"></i>
+        <span>@TempData["SuccessMessage"]</span>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger" style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:12px 16px;border-radius:8px;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size:18px;"></i>
+        <span>@TempData["ErrorMessage"]</span>
+    </div>
+}
+
+<div style="background:#fff;border:1px solid var(--border-color);border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13.5px;text-align:left;">
+            <thead>
+                <tr style="background:#f8fafc;border-bottom:1px solid var(--border-color);color:var(--ink-500);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;">
+                    <th style="padding:12px 18px;width:60px;">Order</th>
+                    <th style="padding:12px 18px;">Category</th>
+                    <th style="padding:12px 18px;">Question</th>
+                    <th style="padding:12px 18px;">Answer Summary</th>
+                    <th style="padding:12px 18px;">Status</th>
+                    <th style="padding:12px 18px;text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="6" style="padding:36px;text-align:center;color:var(--ink-400);">
+                            No FAQ articles yet. Click "Add FAQ Article" to create one.
+                        </td>
+                    </tr>
+                }
+                @foreach (var faq in Model)
+                {
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:14px 18px;font-weight:700;color:var(--ink-600);">
+                            #@faq.DisplayOrder
+                        </td>
+                        <td style="padding:14px 18px;">
+                            <span style="background:#f1f5f9;color:var(--ink-700);font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:4px;">
+                                @faq.Category
+                            </span>
+                        </td>
+                        <td style="padding:14px 18px;font-weight:700;color:var(--ink-900);max-width:320px;">
+                            @faq.Question
+                        </td>
+                        <td style="padding:14px 18px;color:var(--ink-600);max-width:400px;font-size:12.5px;">
+                            @(faq.Answer.Length > 90 ? faq.Answer.Substring(0, 90) + "..." : faq.Answer)
+                        </td>
+                        <td style="padding:14px 18px;">
+                            @if (faq.IsActive)
+                            {
+                                <span style="background:#dcfce7;color:#166534;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:4px;">Active</span>
+                            }
+                            else
+                            {
+                                <span style="background:#fee2e2;color:#991b1b;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:4px;">Hidden</span>
+                            }
+                        </td>
+                        <td style="padding:14px 18px;text-align:right;">
+                            <div style="display:inline-flex;align-items:center;gap:6px;">
+                                <button type="button" class="btn btn-sm" onclick="openEditFaqModal(@faq.Id)" style="background:#f1f5f9;color:var(--ink-700);border:1px solid #cbd5e1;padding:4px 8px;border-radius:6px;cursor:pointer;" title="Edit FAQ">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-controller="SuperAdmin" asp-action="DeleteFaq" asp-route-id="@faq.Id" style="display:inline;" onsubmit="return confirm('Delete this FAQ?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:4px 8px;border-radius:6px;cursor:pointer;">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL: ADD / EDIT FAQ -->
+<div id="faqModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.6);z-index:99999;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#fff;border-radius:12px;width:100%;max-width:520px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);overflow:hidden;">
+        <div style="padding:18px 22px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;">
+            <h3 id="faqModalTitle" style="font-size:16px;font-weight:700;color:var(--ink-900);margin:0;">Add FAQ Article</h3>
+            <button type="button" onclick="closeFaqModal()" style="background:none;border:none;font-size:20px;color:var(--ink-400);cursor:pointer;">&times;</button>
+        </div>
+        <form method="post" asp-controller="SuperAdmin" asp-action="SaveFaq">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="faq_id" value="0" />
+            <div style="padding:22px;display:flex;flex-direction:column;gap:14px;">
+                <div>
+                    <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-800);margin-bottom:6px;">Category</label>
+                    <select name="category" id="faq_category" style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;">
+                        <option value="General">General</option>
+                        <option value="Pricing">Pricing &amp; Plans</option>
+                        <option value="Features">Features &amp; Leads</option>
+                        <option value="Security">Security &amp; Tenants</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-800);margin-bottom:6px;">Question <span style="color:#dc2626;">*</span></label>
+                    <input type="text" name="question" id="faq_question" required placeholder="e.g. How does the 14-day free trial work?" style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;" />
+                </div>
+                <div>
+                    <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-800);margin-bottom:6px;">Answer <span style="color:#dc2626;">*</span></label>
+                    <textarea name="answer" id="faq_answer" rows="4" required placeholder="Enter answer details..." style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;"></textarea>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-800);margin-bottom:6px;">Display Order</label>
+                        <input type="number" name="displayOrder" id="faq_order" value="1" style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;" />
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-800);margin-bottom:6px;">Visibility</label>
+                        <select name="isActive" id="faq_active" style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;">
+                            <option value="true">Active (Visible)</option>
+                            <option value="false">Hidden</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div style="padding:16px 22px;border-top:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:flex-end;gap:10px;">
+                <button type="button" onclick="closeFaqModal()" style="background:#fff;border:1px solid #cbd5e1;color:var(--ink-700);font-weight:600;padding:8px 16px;border-radius:6px;cursor:pointer;">Cancel</button>
+                <button type="submit" style="background:var(--brand-600);color:#fff;font-weight:700;padding:8px 20px;border-radius:6px;border:none;cursor:pointer;">Save FAQ</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const faqsData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(f => new {
+        id = f.Id,
+        question = f.Question ?? "",
+        answer = f.Answer ?? "",
+        category = f.Category ?? "General",
+        displayOrder = f.DisplayOrder,
+        isActive = f.IsActive
+    })));
+
+    function openAddFaqModal() {
+        document.getElementById('faqModalTitle').innerText = 'Add FAQ Article';
+        document.getElementById('faq_id').value = '0';
+        document.getElementById('faq_question').value = '';
+        document.getElementById('faq_answer').value = '';
+        document.getElementById('faq_order').value = '1';
+        document.getElementById('faq_active').value = 'true';
+        document.getElementById('faqModal').style.display = 'flex';
+    }
+    function openEditFaqModal(id) {
+        const faq = faqsData.find(f => f.id === id);
+        if (!faq) return;
+
+        document.getElementById('faqModalTitle').innerText = 'Edit FAQ Article';
+        document.getElementById('faq_id').value = faq.id;
+        document.getElementById('faq_question').value = faq.question;
+        document.getElementById('faq_answer').value = faq.answer;
+        document.getElementById('faq_category').value = faq.category;
+        document.getElementById('faq_order').value = faq.displayOrder;
+        document.getElementById('faq_active').value = faq.isActive ? 'true' : 'false';
+        document.getElementById('faqModal').style.display = 'flex';
+    }
+    function closeFaqModal() {
+        document.getElementById('faqModal').style.display = 'none';
+    }
+</script>
+

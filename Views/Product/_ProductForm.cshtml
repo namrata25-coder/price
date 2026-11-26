@@ -1,0 +1,382 @@
+@model ProductInputModel
+
+@* ── Validation Summary ── *@
+@{
+    var hasSummaryErrors = !ViewData.ModelState.IsValid && ViewData.ModelState.Values.Any(v => v.Errors.Count > 0);
+}
+@if (hasSummaryErrors)
+{
+    <div class="pf-alert pf-alert--error" role="alert">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size:16px;"></i>
+        <div>
+            <div style="font-weight:700;margin-bottom:4px;">Please fix the following errors:</div>
+            <div asp-validation-summary="ModelOnly"></div>
+        </div>
+    </div>
+}
+
+<style>
+/* ── Product Form Styles ── */
+.pf-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem 1.75rem;
+}
+@@media (max-width: 680px) { .pf-grid { grid-template-columns: 1fr; } }
+
+.pf-field { display: flex; flex-direction: column; gap: 5px; }
+.pf-field--full { grid-column: 1 / -1; }
+
+.pf-label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--ink-600, #374151);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.pf-label .pf-label-icon {
+    width: 22px; height: 22px;
+    background: var(--brand-50, #eff6ff);
+    border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--brand-600, #2563eb);
+    font-size: 12px;
+    flex-shrink: 0;
+}
+.pf-required { color: #ef4444; margin-left: 2px; font-size: 14px; line-height: 1; }
+.pf-hint { font-size: 11.5px; color: var(--ink-400, #9ca3af); margin-top: 1px; }
+
+.pf-input-wrap { position: relative; }
+.pf-input-prefix {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 42px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-400, #9ca3af);
+    font-size: 13px;
+    font-weight: 600;
+    background: #f9fafb;
+    border-right: 1px solid var(--line, #e5e7eb);
+    border-radius: 10px 0 0 10px;
+    pointer-events: none;
+}
+.pf-input, .pf-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--line, #e5e7eb);
+    border-radius: 10px;
+    font-size: 13.5px;
+    color: var(--ink-900, #111827);
+    background: #fff;
+    transition: border-color .18s, box-shadow .18s;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.pf-input.has-prefix { padding-left: 50px; }
+.pf-input:focus, .pf-textarea:focus {
+    border-color: var(--brand-500, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+}
+.pf-input.input-validation-error,
+.pf-textarea.input-validation-error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239,68,68,.10);
+}
+.pf-textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
+.pf-error { font-size: 12px; color: #ef4444; display: flex; align-items: center; gap: 4px; }
+
+.pf-features-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 0; }
+.pf-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--brand-50, #eff6ff);
+    color: var(--brand-700, #1d4ed8);
+    border: 1px solid var(--brand-200, #bfdbfe);
+    border-radius: 20px;
+    padding: 3px 10px 3px 10px;
+    font-size: 12px; font-weight: 600;
+}
+.pf-tag-remove {
+    background: none; border: none; cursor: pointer;
+    color: var(--brand-400, #60a5fa);
+    padding: 0; line-height: 1; font-size: 14px;
+    display: flex; align-items: center;
+}
+.pf-tag-remove:hover { color: #ef4444; }
+
+.pf-features-add-row { display: flex; gap: 8px; align-items: center; }
+.pf-features-add-input {
+    flex: 1;
+    padding: 8px 13px;
+    border: 1.5px solid var(--line, #e5e7eb);
+    border-radius: 8px;
+    font-size: 13px; font-family: inherit;
+    outline: none;
+    transition: border-color .18s;
+}
+.pf-features-add-input:focus { border-color: var(--brand-500, #3b82f6); }
+.pf-features-add-btn {
+    padding: 8px 14px;
+    background: var(--brand-600, #2563eb);
+    color: #fff;
+    border: none; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 5px;
+    transition: background .15s;
+    white-space: nowrap;
+}
+.pf-features-add-btn:hover { background: var(--brand-700, #1d4ed8); }
+
+.pf-alert {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+    font-size: 13px;
+}
+.pf-alert--error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
+
+.pf-divider {
+    grid-column: 1 / -1;
+    border: none; border-top: 1px solid var(--line, #e5e7eb);
+    margin: .25rem 0;
+}
+
+.pf-section-label {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-400, #9ca3af);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    display: flex; align-items: center; gap: 8px;
+}
+.pf-section-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line, #e5e7eb);
+}
+
+.pf-action-bar {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line, #e5e7eb);
+    margin-top: .75rem;
+}
+.pf-btn-save {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 10px 22px;
+    background: var(--brand-600, #2563eb);
+    color: #fff;
+    border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+    letter-spacing: .2px;
+}
+.pf-btn-save:hover { background: var(--brand-700, #1d4ed8); transform: translateY(-1px); }
+.pf-btn-save:active { transform: translateY(0); }
+.pf-btn-cancel {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 10px 20px;
+    background: #fff;
+    color: var(--ink-700, #374151);
+    border: 1.5px solid var(--line, #e5e7eb);
+    border-radius: 10px;
+    font-size: 14px; font-weight: 600;
+    text-decoration: none;
+    transition: background .15s, border-color .15s;
+}
+.pf-btn-cancel:hover { background: #f9fafb; border-color: #d1d5db; color: var(--ink-900,#111827); }
+</style>
+
+<div class="pf-grid">
+
+    @* ── Basic Info ── *@
+    <div class="pf-section-label">Basic Information</div>
+
+    <div class="pf-field">
+        <label class="pf-label" asp-for="Name">
+            <span class="pf-label-icon"><i class="bi bi-box-seam"></i></span>
+            Product Name <span class="pf-required">*</span>
+        </label>
+        <div class="pf-input-wrap">
+            <input asp-for="Name" class="pf-input" maxlength="200" autocomplete="off"
+                   placeholder="e.g. CRM Pro Suite" required />
+        </div>
+        <span asp-validation-for="Name" class="pf-error"><i class="bi bi-exclamation-circle"></i> <span></span></span>
+    </div>
+
+    <div class="pf-field">
+        <label class="pf-label" asp-for="Price">
+            <span class="pf-label-icon"><i class="bi bi-currency-dollar"></i></span>
+            Price <span class="pf-required">*</span>
+        </label>
+        <div class="pf-input-wrap">
+            <span class="pf-input-prefix">₹</span>
+            <input asp-for="Price" type="number" class="pf-input has-prefix"
+                   min="0" max="9999999999999999.99" step="0.01"
+                   placeholder="0.00" required />
+        </div>
+        <span asp-validation-for="Price" class="pf-error"><i class="bi bi-exclamation-circle"></i> <span></span></span>
+    </div>
+
+    <div class="pf-field pf-field--full">
+        <label class="pf-label" asp-for="Description">
+            <span class="pf-label-icon"><i class="bi bi-text-left"></i></span>
+            Description <span class="pf-required">*</span>
+        </label>
+        <textarea asp-for="Description" class="pf-textarea" rows="4" maxlength="4000"
+                  placeholder="Describe what this product offers, its purpose and key highlights…" required></textarea>
+        <span asp-validation-for="Description" class="pf-error"><i class="bi bi-exclamation-circle"></i> <span></span></span>
+    </div>
+
+    <hr class="pf-divider" />
+
+    @* ── Features ── *@
+    <div class="pf-section-label">Product Features</div>
+
+    <div class="pf-field pf-field--full" id="pf-features-wrapper">
+        <label class="pf-label">
+            <span class="pf-label-icon"><i class="bi bi-stars"></i></span>
+            Features <span class="pf-required">*</span>
+        </label>
+
+        @* tag display *@
+        <div class="pf-features-tags" id="pf-tags-container"></div>
+
+        @* add-feature input *@
+        <div class="pf-features-add-row">
+            <input id="pf-feature-input" class="pf-features-add-input"
+                   type="text" maxlength="300"
+                   placeholder="Type a feature and press Enter or click Add…" />
+            <button type="button" class="pf-features-add-btn" onclick="pfAddFeature()">
+                <i class="bi bi-plus-lg"></i> Add
+            </button>
+        </div>
+        <div class="pf-hint" style="margin-top:4px;">
+            <i class="bi bi-info-circle"></i> Press <kbd style="font-size:11px;padding:1px 5px;border:1px solid #d1d5db;border-radius:4px;background:#f9fafb;">Enter</kbd> or click Add after each feature.
+        </div>
+
+        @* hidden textarea carries the actual value *@
+        <textarea asp-for="Features" id="pf-features-hidden"
+                  style="display:none;" maxlength="4000" required></textarea>
+        <span asp-validation-for="Features" class="pf-error" id="pf-features-error">
+            <i class="bi bi-exclamation-circle"></i> <span>At least one feature is required.</span>
+        </span>
+    </div>
+
+    <hr class="pf-divider" />
+
+    @* ── Link ── *@
+    <div class="pf-section-label">External Link</div>
+
+    <div class="pf-field pf-field--full">
+        <label class="pf-label" asp-for="Url">
+            <span class="pf-label-icon"><i class="bi bi-link-45deg"></i></span>
+            Product URL
+            <span style="font-size:11px;font-weight:500;color:var(--ink-400);text-transform:none;letter-spacing:0;margin-left:4px;">— optional</span>
+        </label>
+        <div class="pf-input-wrap">
+            <span class="pf-input-prefix" style="font-size:11px;width:52px;letter-spacing:0;">https://</span>
+            <input asp-for="Url" type="url" class="pf-input" style="padding-left:60px;"
+                   maxlength="2048" placeholder="www.example.com/product" />
+        </div>
+        <span asp-validation-for="Url" class="pf-error"><i class="bi bi-exclamation-circle"></i> <span></span></span>
+        <div class="pf-hint"><i class="bi bi-info-circle"></i> Must start with https:// or http://</div>
+    </div>
+
+</div>
+
+@* ── Action Bar ── *@
+<div class="pf-action-bar">
+    <button type="submit" class="pf-btn-save" id="pf-save-btn">
+        <i class="bi bi-check-circle-fill"></i> Save Product
+    </button>
+    <a asp-action="Index" class="pf-btn-cancel">
+        <i class="bi bi-x-lg"></i> Cancel
+    </a>
+    <span id="pf-saving-hint" style="display:none;font-size:12.5px;color:var(--ink-500);margin-left:4px;">
+        <i class="bi bi-arrow-repeat" style="animation:spin 1s linear infinite;display:inline-block;"></i> Saving…
+    </span>
+</div>
+
+<style>
+@@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+</style>
+
+<script>
+(function () {
+    // ── Feature tag builder ──
+    const hiddenArea  = document.getElementById('pf-features-hidden');
+    const tagsEl      = document.getElementById('pf-tags-container');
+    const addInput    = document.getElementById('pf-feature-input');
+    const errEl       = document.getElementById('pf-features-error');
+    let features      = [];
+
+    function renderTags() {
+        tagsEl.innerHTML = '';
+        features.forEach(function (f, i) {
+            const tag = document.createElement('span');
+            tag.className = 'pf-tag';
+            tag.innerHTML =
+                '<i class="bi bi-check2" style="font-size:11px;"></i>' +
+                escHtml(f) +
+                '<button type="button" class="pf-tag-remove" title="Remove" onclick="pfRemoveFeature(' + i + ')">' +
+                '<i class="bi bi-x"></i></button>';
+            tagsEl.appendChild(tag);
+        });
+        hiddenArea.value = features.join('\n');
+        errEl.style.display = features.length === 0 && hiddenArea.value === '' ? '' : 'none';
+    }
+
+    function escHtml(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    window.pfAddFeature = function () {
+        const val = addInput.value.trim();
+        if (!val) { addInput.focus(); return; }
+        const lines = val.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+        lines.forEach(function(l){ if (!features.includes(l)) features.push(l); });
+        addInput.value = '';
+        renderTags();
+        addInput.focus();
+    };
+
+    window.pfRemoveFeature = function (i) {
+        features.splice(i, 1);
+        renderTags();
+    };
+
+    addInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); pfAddFeature(); }
+    });
+
+    // ── Pre-populate from existing value (Edit mode) ──
+    const existing = hiddenArea.value.trim();
+    if (existing) {
+        features = existing.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+        renderTags();
+    } else {
+        errEl.style.display = 'none';
+    }
+
+    // ── Save button spinner ──
+    document.getElementById('pf-save-btn')?.closest('form')?.addEventListener('submit', function () {
+        document.getElementById('pf-saving-hint').style.display = 'inline-flex';
+    });
+
+    // ── Validate features before submit ──
+    document.getElementById('pf-save-btn')?.closest('form')?.addEventListener('submit', function (e) {
+        if (!hiddenArea.value.trim()) {
+            e.preventDefault();
+            errEl.style.display = 'flex';
+            addInput.focus();
+        }
+    }, true);
+})();
+</script>
