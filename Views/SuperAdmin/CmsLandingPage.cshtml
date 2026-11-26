@@ -1,0 +1,135 @@
+@model CrmLeadManagement.Models.CmsLandingPageConfig
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "CMS: Landing Page · SuperAdmin Panel";
+    ViewData["ActivePage"] = "SuperAdminCmsLanding";
+}
+
+<div class="content-header" style="margin-bottom: 24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="font-size:24px;font-weight:800;color:var(--ink-900);margin:0;">CMS &bull; Public Landing Page</h1>
+                <span style="background:#e0e7ff;color:#4338ca;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;">
+                    Marketing &amp; Hero Content
+                </span>
+            </div>
+            <p style="color:var(--ink-500);font-size:13.5px;margin:4px 0 0 0;">
+                Customize the public-facing homepage headlines, promotional copy, and conversion buttons.
+            </p>
+        </div>
+        <div>
+            <a href="/login" target="_blank" class="btn" style="background:#fff;border:1px solid var(--border-color);color:var(--ink-700);font-weight:600;padding:8px 16px;border-radius:8px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                <i class="bi bi-box-arrow-up-right"></i> View Live Login / Portal
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success" style="background:#dcfce7;border:1px solid #86efac;color:#166534;padding:12px 16px;border-radius:8px;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+        <i class="bi bi-check-circle-fill" style="font-size:18px;"></i>
+        <span>@TempData["SuccessMessage"]</span>
+    </div>
+}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+    <!-- Form Card -->
+    <div style="background:#fff;border:1px solid var(--border-color);border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <h3 style="font-size:16px;font-weight:700;color:var(--ink-900);margin:0 0 16px 0;display:flex;align-items:center;gap:8px;">
+            <i class="bi bi-pencil-square" style="color:var(--brand-600);"></i> Edit Hero Section &amp; Headlines
+        </h3>
+
+        <form method="post" asp-controller="SuperAdmin" asp-action="SaveLandingPage">
+            @Html.AntiForgeryToken()
+            <div style="display:flex;flex-direction:column;gap:16px;">
+                <div>
+                    <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-800);margin-bottom:6px;">
+                        Hero Tagline / Badge
+                    </label>
+                    <input type="text" name="HeroBadge" id="inp_badge" value="@Model.HeroBadge" style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;" oninput="updatePreview()" />
+                </div>
+
+                <div>
+                    <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-800);margin-bottom:6px;">
+                        Main Hero Title <span style="color:#dc2626;">*</span>
+                    </label>
+                    <input type="text" name="HeroTitle" id="inp_title" value="@Model.HeroTitle" required style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;" oninput="updatePreview()" />
+                </div>
+
+                <div>
+                    <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-800);margin-bottom:6px;">
+                        Hero Subtitle / Value Proposition
+                    </label>
+                    <textarea name="HeroSubtitle" id="inp_subtitle" rows="3" style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;" oninput="updatePreview()">@Model.HeroSubtitle</textarea>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-800);margin-bottom:6px;">
+                            CTA Button Text
+                        </label>
+                        <input type="text" name="CtaButtonText" id="inp_btntext" value="@Model.CtaButtonText" style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;" oninput="updatePreview()" />
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-800);margin-bottom:6px;">
+                            CTA Button URL
+                        </label>
+                        <input type="text" name="CtaButtonUrl" value="@Model.CtaButtonUrl" style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;" />
+                    </div>
+                </div>
+
+                <div>
+                    <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-800);margin-bottom:6px;">
+                        Key Features (JSON format)
+                    </label>
+                    <textarea name="FeaturesJson" rows="4" style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;font-family:monospace;font-size:12px;">@Model.FeaturesJson</textarea>
+                </div>
+
+                <div style="margin-top:10px;">
+                    <button type="submit" class="btn" style="background:var(--brand-600);color:#fff;font-weight:700;padding:10px 24px;border-radius:8px;border:none;cursor:pointer;">
+                        <i class="bi bi-save2"></i> Save Landing Page Content
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Live Preview Card -->
+    <div style="background:#fff;border:1px solid var(--border-color);border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;border-bottom:1px solid #f1f5f9;padding-bottom:10px;">
+            <h3 style="font-size:15px;font-weight:700;color:var(--ink-700);margin:0;display:flex;align-items:center;gap:6px;">
+                <i class="bi bi-eye"></i> Real-time Live Preview
+            </h3>
+            <span style="font-size:11px;background:#f1f5f9;color:var(--ink-500);padding:3px 8px;border-radius:4px;">Hero Block Preview</span>
+        </div>
+
+        <div style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:#fff;padding:36px 24px;border-radius:12px;text-align:center;">
+            <div id="prev_badge" style="display:inline-block;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#93c5fd;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:16px;">
+                @Model.HeroBadge
+            </div>
+            <h2 id="prev_title" style="font-size:24px;font-weight:800;line-height:1.3;margin:0 0 12px 0;">
+                @Model.HeroTitle
+            </h2>
+            <p id="prev_subtitle" style="color:#cbd5e1;font-size:13.5px;max-width:440px;margin:0 auto 20px auto;line-height:1.5;">
+                @Model.HeroSubtitle
+            </p>
+            <div>
+                <a id="prev_btntext" href="javascript:void(0)" style="background:#2563eb;color:#fff;font-weight:700;padding:10px 22px;border-radius:8px;text-decoration:none;display:inline-block;box-shadow:0 4px 12px rgba(37,99,235,0.4);">
+                    @Model.CtaButtonText &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updatePreview() {
+        document.getElementById('prev_badge').innerText = document.getElementById('inp_badge').value;
+        document.getElementById('prev_title').innerText = document.getElementById('inp_title').value;
+        document.getElementById('prev_subtitle').innerText = document.getElementById('inp_subtitle').value;
+        document.getElementById('prev_btntext').innerText = document.getElementById('inp_btntext').value + ' →';
+    }
+</script>
+

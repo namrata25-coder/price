@@ -1,0 +1,142 @@
+@using CrmLeadManagement.Models
+@{
+    var availablePlans = ViewBag.AvailablePlans as List<SaaSSubscriptionPlan> ?? new List<SaaSSubscriptionPlan>();
+    var paidPlans = availablePlans.Where(p => p.Price > 0).OrderBy(p => p.Price).ToList();
+    var currentCount = ViewBag.CurrentLeadsCount ?? 0;
+    var maxLeads = ViewBag.MaxLeads ?? 3;
+    var planName = ViewBag.PlanName ?? "Free Trial";
+}
+
+<!-- ============ SUBSCRIPTION QUOTA UPGRADE MODAL ============ -->
+<style>
+    .quota-modal-close:hover {
+        background: rgba(255,255,255,0.35) !important;
+        transform: scale(1.08);
+    }
+    .quota-modal-close:active {
+        transform: scale(0.96);
+    }
+</style>
+
+<div class="modal-backdrop-custom" id="quotaUpgradeModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:99999;padding:16px;" onclick="if(event.target===this) closeQuotaUpgradeModal()">
+    <div class="modal-box" style="max-width:920px;width:95%;background:#fff;border-radius:16px;box-shadow:0 25px 50px -12px rgba(15,23,42,0.25);overflow:hidden;border:1px solid #e2e8f0;position:relative;">
+        <div style="background:linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);color:#fff;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+                <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:8px;backdrop-filter:blur(4px);">
+                    <i class="bi bi-star-fill" style="color:#fde047;"></i> Current Plan: @planName
+                </div>
+                <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em;">Upgrade Your Subscription Plan</h2>
+                <p style="margin:6px 0 0 0;font-size:13.5px;color:#bfdbfe;line-height:1.4;">
+                    Choose a plan below to scale your team users and unlock premium CRM features.
+                </p>
+            </div>
+            <button type="button" class="quota-modal-close" onclick="closeQuotaUpgradeModal()" aria-label="Close" title="Close" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s ease;outline:none;">
+                <i class="bi bi-x-lg" style="font-size:17px;line-height:1;font-weight:bold;"></i>
+            </button>
+        </div>
+
+        <div style="padding:26px 28px;background:#f8fafc;max-height:calc(85vh - 120px);overflow-y:auto;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:20px;">
+                @foreach (var plan in paidPlans)
+                {
+                    var isPopular = plan.IsPopular || plan.Price == 800m;
+                    <div style="background:#fff;border:@(isPopular ? "2px solid #2563eb" : "1px solid #e2e8f0");border-radius:14px;padding:22px;display:flex;flex-direction:column;position:relative;box-shadow:0 4px 12px rgba(0,0,0,0.03);">
+                        @if (isPopular)
+                        {
+                            <div style="position:absolute;top:-11px;right:18px;background:linear-gradient(135deg, #2563eb, #1d4ed8);color:#fff;font-size:10.5px;font-weight:800;padding:2px 10px;border-radius:12px;text-transform:uppercase;letter-spacing:0.06em;box-shadow:0 2px 6px rgba(37,99,235,0.35);">
+                                Recommended
+                            </div>
+                        }
+
+                        <div style="margin-bottom:8px;">
+                            <h3 style="margin:0;font-size:18px;font-weight:800;color:var(--ink-900);">@plan.Name</h3>
+                            <p style="margin:4px 0 0 0;color:var(--ink-500);font-size:12px;min-height:32px;">@plan.Description</p>
+                        </div>
+
+                        <div style="margin:12px 0 16px 0;padding-bottom:14px;border-bottom:1px solid #f1f5f9;">
+                            <div style="display:flex;align-items:baseline;gap:4px;">
+                                <span style="font-size:30px;font-weight:800;color:var(--ink-900);">₹@plan.Price.ToString("N0")</span>
+                                <span style="font-size:12.5px;color:var(--ink-400);font-weight:600;">/@plan.BillingInterval</span>
+                            </div>
+                        </div>
+
+                        <div style="flex:1;margin-bottom:20px;">
+                            <div style="font-size:11px;font-weight:700;color:var(--ink-400);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">
+                                Included In This Plan:
+                            </div>
+                            <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--ink-700);">
+                                <li style="display:flex;align-items:center;gap:8px;">
+                                    <i class="bi bi-check-circle-fill text-success" style="font-size:13px;"></i>
+                                    <span>Up to <strong>@plan.MaxTeamMembers</strong> Users</span>
+                                </li>
+                                @if (!string.IsNullOrWhiteSpace(plan.Features))
+                                {
+                                    @foreach (var feat in plan.Features.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Take(4))
+                                    {
+                                        if (feat.Contains("Quota", StringComparison.OrdinalIgnoreCase) || feat.Contains("Team Members", StringComparison.OrdinalIgnoreCase) || feat.Contains("Users", StringComparison.OrdinalIgnoreCase)) continue;
+                                        <li style="display:flex;align-items:center;gap:8px;">
+                                            <i class="bi bi-check-circle-fill text-success" style="font-size:13px;"></i>
+                                            <span>@feat</span>
+                                        </li>
+                                    }
+                                }
+                            </ul>
+                        </div>
+
+                        <form method="post" asp-controller="Lead" asp-action="UpgradePlan">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="planId" value="@plan.Id" />
+                            <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                            <button type="submit" class="btn" style="width:100%;background:@(isPopular ? "linear-gradient(135deg, #2563eb, #1d4ed8)" : "linear-gradient(135deg, #1e293b, #0f172a)");color:#fff;font-weight:700;padding:10px 16px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                                <i class="bi bi-shield-check"></i> Upgrade to @plan.Name
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div style="padding:14px 28px;background:#fff;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--ink-500);">
+            <div>Need a custom enterprise volume? Contact support at <a href="mailto:support@visioncrm.com" style="color:#2563eb;text-decoration:none;font-weight:600;">support@visioncrm.com</a></div>
+            <button type="button" class="btn btn-sm" onclick="closeQuotaUpgradeModal()" style="background:#f1f5f9;color:var(--ink-700);border:1px solid #cbd5e1;padding:7px 18px;border-radius:6px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s ease;">
+                <i class="bi bi-x-circle"></i> Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openQuotaUpgradeModal() {
+        const modal = document.getElementById('quotaUpgradeModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.add('show');
+            modal.classList.add('open');
+        }
+    }
+
+    function closeQuotaUpgradeModal() {
+        const modal = document.getElementById('quotaUpgradeModal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.remove('show');
+            modal.classList.remove('open');
+        }
+    }
+
+    // Also close on Escape key if open
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeQuotaUpgradeModal();
+        }
+    });
+
+    @if (TempData["ShowUpgradeModal"] is true)
+    {
+        <text>
+        document.addEventListener('DOMContentLoaded', function() {
+            openQuotaUpgradeModal();
+        });
+        </text>
+    }
+</script>

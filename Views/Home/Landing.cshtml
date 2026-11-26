@@ -1,0 +1,301 @@
+@model CrmLeadManagement.Controllers.PublicLandingPageViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = $"{Model.Config.HeroTitle} · VisionCRM SaaS";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"]</title>
+    <meta name="description" content="@Model.Config.HeroSubtitle" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --brand-950: #071329;
+            --brand-900: #0d2857;
+            --brand-800: #1e3a8a;
+            --brand-700: #1d4ed8;
+            --brand-600: #2563eb;
+            --brand-500: #3b82f6;
+            --brand-50:  #eff6ff;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #ffffff; color: var(--text-dark); line-height: 1.6; }
+        
+        /* Navbar */
+        .navbar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 48px; border-bottom: 1px solid var(--border-light);
+            position: sticky; top: 0; background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px); z-index: 1000;
+        }
+        .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+        .nav-logo-mark {
+            width: 38px; height: 38px; border-radius: 9px;
+            background: linear-gradient(135deg, var(--brand-600), var(--brand-800));
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 800; font-size: 20px;
+        }
+        .nav-brand-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+        .nav-links { display: flex; gap: 28px; list-style: none; }
+        .nav-links a { text-decoration: none; color: var(--text-muted); font-weight: 600; font-size: 14px; transition: color .15s ease; }
+        .nav-links a:hover { color: var(--brand-600); }
+        .btn-sign-in-nav {
+            background: var(--brand-600); color: #fff; padding: 8px 20px;
+            border-radius: 8px; text-decoration: none; font-weight: 700;
+            font-size: 13.5px; transition: all .15s ease;
+        }
+        .btn-sign-in-nav:hover { background: var(--brand-700); box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
+
+        /* Hero */
+        .hero {
+            padding: 90px 24px 80px; text-align: center;
+            background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%);
+            position: relative; overflow: hidden;
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--brand-50); border: 1px solid #bfdbfe;
+            color: var(--brand-700); font-weight: 700; font-size: 12.5px;
+            padding: 5px 14px; border-radius: 20px; margin-bottom: 20px;
+        }
+        .hero-title {
+            font-size: 46px; font-weight: 900; line-height: 1.2;
+            letter-spacing: -1px; max-width: 840px; margin: 0 auto 20px;
+        }
+        .hero-title span {
+            background: linear-gradient(135deg, var(--brand-600), var(--brand-800));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero-subtitle {
+            font-size: 18px; color: var(--text-muted); max-width: 680px;
+            margin: 0 auto 36px; line-height: 1.6;
+        }
+        .hero-actions { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+        .btn-hero-primary {
+            background: linear-gradient(135deg, var(--brand-600), var(--brand-700));
+            color: #fff; padding: 14px 32px; border-radius: 9px;
+            text-decoration: none; font-weight: 700; font-size: 15px;
+            box-shadow: 0 6px 18px rgba(37,99,235,0.3); transition: all .2s ease;
+        }
+        .btn-hero-primary:hover {
+            background: linear-gradient(135deg, var(--brand-700), var(--brand-800));
+            transform: translateY(-2px);
+        }
+        .btn-hero-secondary {
+            background: #fff; color: var(--text-dark); border: 1px solid var(--border-light);
+            padding: 14px 28px; border-radius: 9px; text-decoration: none;
+            font-weight: 700; font-size: 15px; transition: all .2s ease;
+        }
+        .btn-hero-secondary:hover { background: #f8fafc; }
+
+        /* Pricing Section */
+        .section-header { text-align: center; max-width: 640px; margin: 0 auto 50px; }
+        .section-title { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 12px; }
+        .section-desc { font-size: 15px; color: var(--text-muted); }
+        .pricing-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px; max-width: 1200px; margin: 0 auto; padding: 0 24px;
+        }
+        .pricing-card {
+            background: #fff; border: 1px solid var(--border-light); border-radius: 14px;
+            padding: 32px 28px; display: flex; flex-direction: column;
+            position: relative; transition: all .25s ease;
+        }
+        .pricing-card:hover {
+            transform: translateY(-4px); box-shadow: 0 20px 35px -10px rgba(0,0,0,0.08);
+            border-color: #bfdbfe;
+        }
+        .pricing-card.popular {
+            border: 2px solid var(--brand-600); box-shadow: 0 15px 30px -5px rgba(37,99,235,0.15);
+        }
+        .popular-pill {
+            position: absolute; top: -13px; right: 24px; background: var(--brand-600);
+            color: #fff; font-size: 11px; font-weight: 800; padding: 3px 12px;
+            border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .plan-price { font-size: 36px; font-weight: 900; color: var(--text-dark); margin: 16px 0; }
+        .btn-plan {
+            margin-top: auto; padding: 12px; border-radius: 8px; text-align: center;
+            text-decoration: none; font-weight: 700; font-size: 14px; transition: all .15s ease;
+        }
+
+        /* FAQ Section */
+        .faq-wrapper { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+        .faq-item {
+            border: 1px solid var(--border-light); border-radius: 10px;
+            margin-bottom: 12px; overflow: hidden;
+        }
+        .faq-question {
+            padding: 16px 20px; background: #f8fafc; font-weight: 700;
+            font-size: 15px; cursor: pointer; display: flex;
+            align-items: center; justify-content: space-between;
+        }
+        .faq-answer { padding: 16px 20px; font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+        /* Footer */
+        .footer {
+            background: #f8fafc; border-top: 1px solid var(--border-light);
+            padding: 48px 24px 24px; margin-top: 80px; text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            <div class="nav-logo-mark">V</div>
+            <div class="nav-brand-title">@Model.Settings.PlatformName</div>
+        </a>
+        <ul class="nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#pricing">Pricing &amp; Plans</a></li>
+            <li><a href="#faqs">FAQs</a></li>
+            <li><a href="/login">Support</a></li>
+        </ul>
+        <a href="/login" class="btn-sign-in-nav">
+            <i class="bi bi-box-arrow-in-right"></i> Sign In
+        </a>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="hero-badge">
+            <i class="bi bi-stars"></i> @(string.IsNullOrWhiteSpace(Model.Config.HeroBadge) ? "✨ Multi-Tenant SaaS Cloud Platform" : Model.Config.HeroBadge)
+        </div>
+        <h1 class="hero-title">
+            @(string.IsNullOrWhiteSpace(Model.Config.HeroTitle) ? "Accelerate Your Business with VisionCRM SaaS" : Model.Config.HeroTitle)
+        </h1>
+        <p class="hero-subtitle">
+            @(string.IsNullOrWhiteSpace(Model.Config.HeroSubtitle) ? "Capture leads, coordinate client projects, automate recurring billing, and empower your entire sales workforce from one unified workspace." : Model.Config.HeroSubtitle)
+        </p>
+        <div class="hero-actions">
+            <a href="/login" class="btn-hero-primary">
+                <i class="bi bi-rocket-takeoff-fill"></i> @(string.IsNullOrWhiteSpace(Model.Config.CtaButtonText) ? "Start 7-Day Free Trial" : Model.Config.CtaButtonText)
+            </a>
+            <a href="#pricing" class="btn-hero-secondary">
+                View Pricing &amp; Plans &darr;
+            </a>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section id="features" style="padding: 70px 24px; max-width: 1200px; margin: 0 auto;">
+        <div class="section-header">
+            <h2 class="section-title">Built for Modern Businesses</h2>
+            <p class="section-desc">Experience frictionless lead distribution, milestone tracking, and invoicing in one secure platform.</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:24px;">
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:28px;">
+                <div style="width:44px;height:44px;border-radius:10px;background:#dbeafe;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px;">
+                    <i class="bi bi-funnel-fill"></i>
+                </div>
+                <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Lead Pipeline &amp; Follow-ups</h3>
+                <p style="color:var(--text-muted);font-size:14px;line-height:1.5;">Track prospect activities, automated follow-up dates, call logs, and stage transitions without dropping opportunities.</p>
+            </div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:28px;">
+                <div style="width:44px;height:44px;border-radius:10px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px;">
+                    <i class="bi bi-kanban-fill"></i>
+                </div>
+                <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Project &amp; Milestone Tracking</h3>
+                <p style="color:var(--text-muted);font-size:14px;line-height:1.5;">Organize client deliverables, task dependencies, member assignments, and project files with real-time status updates.</p>
+            </div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:28px;">
+                <div style="width:44px;height:44px;border-radius:10px;background:#fef3c7;color:#d97706;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px;">
+                    <i class="bi bi-receipt"></i>
+                </div>
+                <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Finance &amp; Tax Invoices</h3>
+                <p style="color:var(--text-muted);font-size:14px;line-height:1.5;">Automated GST invoicing, milestone-based billing, payment ledger, and instant PDF downloads with customizable bank details.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" style="padding: 70px 0; background: #f8fafc;">
+        <div class="section-header">
+            <h2 class="section-title">Transparent, Scalable Pricing</h2>
+            <p class="section-desc">Choose a plan that fits your organization and upgrade seamlessly as your user count grows.</p>
+        </div>
+        <div class="pricing-grid">
+            @foreach (var plan in Model.Plans)
+            {
+                <div class="pricing-card @(plan.IsPopular ? "popular" : "")">
+                    @if (plan.IsPopular)
+                    {
+                        <div class="popular-pill">Most Popular</div>
+                    }
+                    <h3 style="font-size:20px;font-weight:800;">@plan.Name</h3>
+                    <p style="color:var(--text-muted);font-size:13px;margin:6px 0 16px;min-height:36px;">@plan.Description</p>
+                    
+                    <div class="plan-price">
+                        @(plan.Price > 0 ? $"₹{plan.Price:N0}" : "Free")
+                        <span style="font-size:14px;color:var(--text-muted);font-weight:600;">/@plan.BillingInterval</span>
+                    </div>
+
+                    <ul style="list-style:none;padding:0;margin:0 0 24px;display:flex;flex-direction:column;gap:10px;font-size:13.5px;">
+                        <li style="display:flex;align-items:center;gap:8px;">
+                            <i class="bi bi-check-circle-fill" style="color:#16a34a;"></i>
+                            <span>Users: @plan.MaxTeamMembers Users</span>
+                        </li>
+                        @if (!string.IsNullOrWhiteSpace(plan.Features))
+                        {
+                            foreach (var f in plan.Features.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                            {
+                                <li style="display:flex;align-items:center;gap:8px;color:var(--text-muted);">
+                                    <i class="bi bi-check2" style="color:#2563eb;font-weight:bold;"></i>
+                                    <span>@f</span>
+                                </li>
+                            }
+                        }
+                    </ul>
+
+                    <a href="/login" class="btn-plan" style="@(plan.IsPopular ? "background:var(--brand-600);color:#fff;" : "background:#fff;border:1px solid #cbd5e1;color:var(--text-dark);")">
+                        @(plan.Price > 0 ? "Subscribe Now" : "Start 7-Day Free Trial")
+                    </a>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faqs" style="padding: 80px 24px;">
+        <div class="section-header">
+            <h2 class="section-title">Frequently Asked Questions</h2>
+            <p class="section-desc">Have questions about VisionCRM SaaS? Find quick answers below.</p>
+        </div>
+        <div class="faq-wrapper">
+            @foreach (var faq in Model.Faqs)
+            {
+                <details class="faq-item">
+                    <summary class="faq-question">
+                        <span>@faq.Question</span>
+                        <i class="bi bi-chevron-down"></i>
+                    </summary>
+                    <div class="faq-answer">
+                        @faq.Answer
+                    </div>
+                </details>
+            }
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div style="font-weight:800;font-size:18px;margin-bottom:6px;">@Model.Settings.PlatformName</div>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">
+            Support: <a href="mailto:@Model.Settings.SupportEmail" style="color:var(--brand-600);">@Model.Settings.SupportEmail</a> | Phone: @Model.Settings.SupportPhone
+        </p>
+        <div style="color:var(--text-muted);font-size:12px;">
+            &copy; @DateTime.UtcNow.Year @Model.Settings.PlatformName. All rights reserved. Built with 256-bit TLS Data Security.
+        </div>
+    </footer>
+</body>
+</html>
+

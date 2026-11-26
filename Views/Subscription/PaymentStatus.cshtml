@@ -1,0 +1,502 @@
+@model CrmLeadManagement.Models.SubscriptionPaymentStatusViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Subscription Payment Status · Billing";
+    ViewData["ActivePage"] = "AdminPaymentStatus";
+
+    var sub = Model.CurrentSubscription;
+    var isTrial = sub == null || string.Equals(sub.Status, "Trial", StringComparison.OrdinalIgnoreCase);
+    var isExpired = sub?.IsExpired ?? false;
+    var isActive = sub != null && string.Equals(sub.Status, "Active", StringComparison.OrdinalIgnoreCase) && !isExpired;
+}
+
+<div class="content-header" style="margin-bottom: 24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="font-size:24px;font-weight:800;color:var(--ink-900);margin:0;">Subscription Payment Status</h1>
+                <span style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;">
+                    <i class="bi bi-clock-history"></i> Billing &amp; Payment Ledger
+                </span>
+                @if (isActive)
+                {
+                    <span style="background:#dcfce7;color:#166534;border:1px solid #86efac;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;">
+                        <i class="bi bi-patch-check-fill"></i> Active Subscription
+                    </span>
+                }
+                else if (isTrial)
+                {
+                    <span style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;">
+                        <i class="bi bi-gift-fill"></i> Free Trial
+                    </span>
+                }
+            </div>
+            <p style="color:var(--ink-500);font-size:13.5px;margin:4px 0 0 0;">
+                Live overview of your SaaS subscription payments, Razorpay online gateway records, and offline bank transfer approval status.
+            </p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="background:#f8fafc;color:#334155;border:1px solid var(--border-color);font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;">
+                <i class="bi bi-building"></i> @Model.CompanyName &bull; Admin ID: @Model.AdminCode
+            </span>
+            <a asp-controller="Subscription" asp-action="Index" class="btn" style="background:#10b981;color:#ffffff;font-weight:700;padding:8px 16px;border-radius:8px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(16,185,129,0.25);">
+                <i class="bi bi-lightning-charge-fill"></i> Upgrade / Renew Plan
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success" style="background:#dcfce7;border:1px solid #86efac;color:#166534;padding:12px 16px;border-radius:8px;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+        <i class="bi bi-check-circle-fill" style="font-size:18px;"></i>
+        <span>@TempData["SuccessMessage"]</span>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger" style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:12px 16px;border-radius:8px;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size:18px;"></i>
+        <span>@TempData["ErrorMessage"]</span>
+    </div>
+}
+
+<!-- PENDING BANK TRANSFER ALERT -->
+@if (Model.BankRequests.Any(r => r.Status == "Pending"))
+{
+    var pendingReq = Model.BankRequests.First(r => r.Status == "Pending");
+    <div class="alert alert-warning" style="background:#fffbeb;border:2px solid #f59e0b;color:#92400e;padding:16px 20px;border-radius:12px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;box-shadow:0 4px 12px rgba(245,158,11,0.12);">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:44px;height:44px;border-radius:10px;background:#fef3c7;display:flex;align-items:center;justify-content:center;color:#b45309;font-size:22px;flex-shrink:0;">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <div>
+                <div style="font-size:15px;font-weight:800;color:#92400e;margin-bottom:2px;">
+                    Bank Transfer Request #@pendingReq.Id is Pending SuperAdmin Verification
+                </div>
+                <div style="font-size:13px;color:#78350f;">
+                    Requested Plan: <strong>@pendingReq.PlanName (@pendingReq.BillingInterval)</strong> &bull; Amount: <strong>₹@pendingReq.Amount.ToString("N2")</strong> &bull; Submitted on @pendingReq.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")
+                </div>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            @if (!string.IsNullOrWhiteSpace(pendingReq.ReceiptFilePath))
+            {
+                <a href="@pendingReq.ReceiptFilePath" target="_blank" class="btn btn-sm" style="background:#ffffff;border:1px solid #d97706;color:#92400e;font-weight:700;padding:6px 12px;border-radius:6px;text-decoration:none;">
+                    <i class="bi bi-file-earmark-image"></i> View Receipt
+                </a>
+            }
+            <span style="background:#d97706;color:#ffffff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:800;">
+                Pending Approval
+            </span>
+        </div>
+    </div>
+}
+
+<!-- KPI CARDS GRID -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:18px;margin-bottom:28px;">
+    
+    <!-- KPI 1: Active Subscription Plan -->
+    <div style="background:#ffffff;border:1px solid var(--border-color);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:12px;font-weight:700;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.04em;">Current Plan</span>
+            <div style="width:36px;height:36px;border-radius:8px;background:#eff6ff;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:18px;">
+                <i class="bi bi-credit-card-2-front"></i>
+            </div>
+        </div>
+        <div style="font-size:20px;font-weight:800;color:var(--ink-900);margin-bottom:4px;">
+            @(sub?.PlanName ?? "Free Trial")
+        </div>
+        <div style="font-size:12.5px;color:var(--ink-500);">
+            @if (isActive)
+            {
+                <span style="color:#16a34a;font-weight:700;">● Active</span><span> &bull; Valid till @sub?.EndDate.ToString("dd MMM yyyy")</span>
+            }
+            else if (isTrial)
+            {
+                <span style="color:#d97706;font-weight:700;">● 7-Day Trial</span><span> &bull; @(sub?.DaysRemaining ?? 0) days left</span>
+            }
+            else
+            {
+                <span style="color:#dc2626;font-weight:700;">● Expired</span><span> &bull; Upgrade required</span>
+            }
+        </div>
+    </div>
+
+    <!-- KPI 2: Total Subscription Spend -->
+    <div style="background:#ffffff;border:1px solid var(--border-color);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:12px;font-weight:700;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.04em;">Total Paid</span>
+            <div style="width:36px;height:36px;border-radius:8px;background:#f0fdf4;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:18px;">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+        </div>
+        <div style="font-size:22px;font-weight:800;color:#10b981;margin-bottom:4px;">
+            ₹@Model.TotalPaid.ToString("N2")
+        </div>
+        <div style="font-size:12.5px;color:var(--ink-500);">
+            Lifetime subscription payments
+        </div>
+    </div>
+
+    <!-- KPI 3: Successful Payments -->
+    <div style="background:#ffffff;border:1px solid var(--border-color);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:12px;font-weight:700;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.04em;">Paid Invoices</span>
+            <div style="width:36px;height:36px;border-radius:8px;background:#ecfdf5;color:#059669;display:flex;align-items:center;justify-content:center;font-size:18px;">
+                <i class="bi bi-check2-circle"></i>
+            </div>
+        </div>
+        <div style="font-size:22px;font-weight:800;color:var(--ink-900);margin-bottom:4px;">
+            @Model.SuccessfulCount <span style="font-size:14px;font-weight:600;color:var(--ink-500);">Completed</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--ink-500);">
+            Verified via Razorpay / Bank
+        </div>
+    </div>
+
+    <!-- KPI 4: Pending Verifications -->
+    <div style="background:#ffffff;border:1px solid var(--border-color);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:12px;font-weight:700;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.04em;">Pending Approvals</span>
+            <div style="width:36px;height:36px;border-radius:8px;background:#fef3c7;color:#d97706;display:flex;align-items:center;justify-content:center;font-size:18px;">
+                <i class="bi bi-bank2"></i>
+            </div>
+        </div>
+        <div style="font-size:22px;font-weight:800;color:@(Model.PendingCount > 0 ? "#d97706" : "var(--ink-900)");margin-bottom:4px;">
+            @Model.PendingCount <span style="font-size:14px;font-weight:600;color:var(--ink-500);">Pending</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--ink-500);">
+            Offline transfer queue
+        </div>
+    </div>
+
+</div>
+
+<!-- DETAILED CURRENT SUBSCRIPTION PLAN CARD -->
+<div style="background:#ffffff;border:1px solid var(--border-color);border-radius:14px;padding:24px;margin-bottom:28px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:20px;border-bottom:1px solid #f1f5f9;padding-bottom:16px;">
+        <div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h3 style="font-size:17px;font-weight:800;color:var(--ink-900);margin:0;">Active Subscription Details</h3>
+                @if (isActive)
+                {
+                    <span style="background:#dcfce7;color:#166534;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:6px;">Status: Active</span>
+                }
+                else if (isTrial)
+                {
+                    <span style="background:#fef3c7;color:#92400e;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:6px;">Status: 7-Day Trial</span>
+                }
+                else
+                {
+                    <span style="background:#fee2e2;color:#991b1b;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:6px;">Status: Expired</span>
+                }
+            </div>
+            <p style="font-size:12.5px;color:var(--ink-500);margin:3px 0 0 0;">
+                Manage your billing frequency, user seats capacity, and payment gateway configuration.
+            </p>
+        </div>
+        <div>
+            <a asp-controller="Subscription" asp-action="Index" class="btn btn-sm btn-outline-primary" style="font-weight:700;border-radius:6px;padding:6px 14px;">
+                <i class="bi bi-arrow-repeat"></i> Change / Switch Plan
+            </a>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:20px;font-size:13.5px;">
+        <div>
+            <div style="color:var(--ink-400);font-size:12px;font-weight:600;margin-bottom:4px;">Plan Name</div>
+            <strong style="color:var(--ink-900);font-size:15px;">@(sub?.PlanName ?? "Free Trial")</strong>
+        </div>
+        <div>
+            <div style="color:var(--ink-400);font-size:12px;font-weight:600;margin-bottom:4px;">Users Allowed</div>
+            <strong style="color:#2563eb;font-size:15px;">@(Model.CurrentPlan?.MaxTeamMembers ?? 3) Users</strong>
+        </div>
+        <div>
+            <div style="color:var(--ink-400);font-size:12px;font-weight:600;margin-bottom:4px;">Payment Gateway</div>
+            <strong style="color:var(--ink-900);">@(sub?.PaymentMethod ?? "Free Trial")</strong>
+        </div>
+        <div>
+            <div style="color:var(--ink-400);font-size:12px;font-weight:600;margin-bottom:4px;">Start Date</div>
+            <strong style="color:var(--ink-900);">@(sub?.StartDate.ToString("dd MMM yyyy") ?? "-")</strong>
+        </div>
+        <div>
+            <div style="color:var(--ink-400);font-size:12px;font-weight:600;margin-bottom:4px;">Expiry / Renewal Date</div>
+            <strong style="color:@(isExpired ? "#dc2626" : "#10b981");font-size:15px;">@(sub?.EndDate.ToString("dd MMM yyyy") ?? "-")</strong>
+        </div>
+    </div>
+</div>
+
+<!-- SUBSCRIPTION PAYMENT HISTORY TABLE -->
+<div class="card" style="background:#fff;border:1px solid var(--border-color);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+    
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border-color);flex-wrap:wrap;gap:12px;">
+        <div>
+            <h3 style="font-size:16px;font-weight:800;color:var(--ink-900);margin:0;display:flex;align-items:center;gap:8px;">
+                <i class="bi bi-receipt-cutoff" style="color:#10b981;"></i> Subscription Payment Records
+            </h3>
+            <p style="font-size:12.5px;color:var(--ink-500);margin:2px 0 0 0;">
+                All successful and pending subscription transactions recorded for this workspace.
+            </p>
+        </div>
+        <div>
+            <button type="button" onclick="window.print()" class="btn btn-sm" style="background:#f1f5f9;border:1px solid #cbd5e1;color:#334155;font-weight:700;border-radius:6px;padding:6px 14px;display:inline-flex;align-items:center;gap:6px;">
+                <i class="bi bi-printer"></i> Print Statement
+            </button>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size:13.5px;">
+            <thead style="background:var(--canvas);border-bottom:1px solid var(--border-color);">
+                <tr>
+                    <th style="padding:14px 18px;color:var(--ink-700);font-weight:700;">Transaction / Order</th>
+                    <th style="padding:14px 18px;color:var(--ink-700);font-weight:700;">Plan Subscribed</th>
+                    <th style="padding:14px 18px;color:var(--ink-700);font-weight:700;">Amount Paid</th>
+                    <th style="padding:14px 18px;color:var(--ink-700);font-weight:700;">Payment Gateway</th>
+                    <th style="padding:14px 18px;color:var(--ink-700);font-weight:700;">Payment Date</th>
+                    <th style="padding:14px 18px;color:var(--ink-700);font-weight:700;">Status</th>
+                    <th style="padding:14px 18px;color:var(--ink-700);font-weight:700;text-align:right;">Receipt / Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Payments == null || !Model.Payments.Any())
+                {
+                    <tr>
+                        <td colspan="7" style="text-align:center;padding:48px 16px;color:var(--ink-400);">
+                            <div style="font-size:36px;margin-bottom:8px;">💳</div>
+                            <div style="font-weight:700;font-size:16px;color:var(--ink-700);">No Subscription Payments Found</div>
+                            <div style="font-size:13px;">When you subscribe to a plan via Razorpay or submit a bank transfer, records will appear here.</div>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var p in Model.Payments)
+                    {
+                        <tr>
+                            <!-- Transaction ID -->
+                            <td style="padding:14px 18px;">
+                                <div style="font-weight:700;color:var(--ink-900);font-family:monospace;">
+                                    @(string.IsNullOrWhiteSpace(p.TransactionId) ? $"#TX-{p.Id:D5}" : p.TransactionId)
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(p.OrderId))
+                                {
+                                    <div style="font-size:11.5px;color:var(--ink-400);font-family:monospace;">
+                                        Order: @p.OrderId
+                                    </div>
+                                }
+                            </td>
+
+                            <!-- Plan -->
+                            <td style="padding:14px 18px;">
+                                <span style="font-weight:700;color:var(--brand-700);background:#eff6ff;padding:3px 8px;border-radius:6px;display:inline-block;">
+                                    @p.PlanName
+                                </span>
+                                <div style="font-size:11.5px;color:var(--ink-500);margin-top:2px;">
+                                    @p.BillingInterval Billing
+                                </div>
+                            </td>
+
+                            <!-- Amount -->
+                            <td style="padding:14px 18px;">
+                                <strong style="font-size:15px;color:var(--ink-900);">₹@p.Amount.ToString("N2")</strong>
+                            </td>
+
+                            <!-- Payment Gateway -->
+                            <td style="padding:14px 18px;">
+                                @if (p.PaymentMethod == "Razorpay")
+                                {
+                                    <span style="display:inline-flex;align-items:center;gap:6px;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;font-size:12px;font-weight:700;padding:3px 9px;border-radius:8px;">
+                                        <i class="bi bi-shield-lock-fill" style="color:#2563eb;"></i> Razorpay Live
+                                    </span>
+                                }
+                                else if (p.PaymentMethod == "Bank Transfer")
+                                {
+                                    <span style="display:inline-flex;align-items:center;gap:6px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:12px;font-weight:700;padding:3px 9px;border-radius:8px;">
+                                        <i class="bi bi-bank2"></i> Bank Transfer
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span style="display:inline-flex;align-items:center;gap:6px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;font-size:12px;font-weight:700;padding:3px 9px;border-radius:8px;">
+                                        <i class="bi bi-gift"></i> @p.PaymentMethod
+                                    </span>
+                                }
+                            </td>
+
+                            <!-- Date -->
+                            <td style="padding:14px 18px;font-size:12.5px;color:var(--ink-600);">
+                                <div>@p.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</div>
+                                <div style="font-size:11px;color:var(--ink-400);">@p.CreatedAt.ToLocalTime().ToString("hh:mm tt")</div>
+                            </td>
+
+                            <!-- Status -->
+                            <td style="padding:14px 18px;">
+                                @if (p.Status == "Success" || p.Status == "Active")
+                                {
+                                    <span style="background:#dcfce7;color:#166534;border:1px solid #86efac;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;">
+                                        <i class="bi bi-check-circle-fill"></i> Paid &bull; Success
+                                    </span>
+                                }
+                                else if (p.Status == "Pending")
+                                {
+                                    <span style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;">
+                                        <i class="bi bi-hourglass-split"></i> Pending Approval
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;">
+                                        <i class="bi bi-x-circle-fill"></i> @p.Status
+                                    </span>
+                                }
+                            </td>
+
+                            <!-- Receipt & Notes -->
+                            <td style="padding:14px 18px;text-align:right;">
+                                <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+                                    @if (!string.IsNullOrWhiteSpace(p.ReceiptUrl))
+                                    {
+                                        <a href="@p.ReceiptUrl" target="_blank" class="btn btn-sm" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-size:12px;font-weight:700;padding:4px 9px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;">
+                                            <i class="bi bi-file-earmark-image"></i> Receipt
+                                        </a>
+                                    }
+                                    <button type="button" onclick="showReceiptModal('@p.Id', '@p.PlanName', '@p.Amount.ToString("N2")', '@p.PaymentMethod', '@(string.IsNullOrWhiteSpace(p.TransactionId) ? p.OrderId : p.TransactionId)', '@p.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")', '@p.Status')" class="btn btn-sm" style="background:#ffffff;border:1px solid #cbd5e1;color:#334155;font-size:12px;font-weight:700;padding:4px 9px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;">
+                                        <i class="bi bi-eye"></i> Details
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- RECEIPT DETAILS MODAL -->
+<div id="receiptModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.65);backdrop-filter:blur(3px);z-index:99999;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this) closeReceiptModal()">
+    <div style="background:#fff;border-radius:14px;width:100%;max-width:540px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);overflow:hidden;animation:fadeIn .2s ease;">
+        <div style="background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
+            <h5 style="font-size:16px;font-weight:800;color:#0f172a;margin:0;display:flex;align-items:center;gap:8px;">
+                <i class="bi bi-receipt" style="color:#10b981;"></i> Subscription Payment Receipt
+            </h5>
+            <button type="button" onclick="closeReceiptModal()" style="background:transparent;border:none;font-size:18px;color:#64748b;cursor:pointer;" title="Close">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div style="padding:24px;" id="receiptPrintArea">
+            <div style="text-align:center;margin-bottom:20px;border-bottom:1px dashed #cbd5e1;padding-bottom:16px;">
+                <div style="font-size:20px;font-weight:800;color:#0f172a;">VisionCRM SaaS Platform</div>
+                <div style="font-size:12px;color:#64748b;margin-top:2px;">Official Subscription Billing Voucher</div>
+                <div style="margin-top:10px;font-size:26px;font-weight:800;color:#10b981;" id="mAmount"></div>
+                <span id="mStatusBadge" style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11.5px;font-weight:800;margin-top:6px;"></span>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;">
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #f1f5f9;padding-bottom:6px;">
+                    <span style="color:#64748b;">Customer / Company:</span>
+                    <strong style="color:#0f172a;">@Model.CompanyName (@Model.AdminCode)</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #f1f5f9;padding-bottom:6px;">
+                    <span style="color:#64748b;">Subscription Plan:</span>
+                    <strong style="color:#1d4ed8;" id="mPlanName"></strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #f1f5f9;padding-bottom:6px;">
+                    <span style="color:#64748b;">Payment Method:</span>
+                    <strong style="color:#0f172a;" id="mMethod"></strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #f1f5f9;padding-bottom:6px;">
+                    <span style="color:#64748b;">Transaction Reference:</span>
+                    <strong style="color:#0f172a;font-family:monospace;" id="mTxId"></strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                    <span style="color:#64748b;">Date &amp; Time:</span>
+                    <strong style="color:#0f172a;" id="mDate"></strong>
+                </div>
+            </div>
+
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:11.5px;color:#64748b;margin-top:20px;text-align:center;">
+                <i class="bi bi-shield-check" style="color:#10b981;"></i> Digitally generated and cryptographically verified SaaS subscription record.
+            </div>
+        </div>
+        <div style="border-top:1px solid #e2e8f0;padding:12px 20px;background:#f8fafc;display:flex;align-items:center;justify-content:flex-end;gap:10px;">
+            <button type="button" onclick="closeReceiptModal()" style="background:#fff;border:1px solid #cbd5e1;color:#475569;font-weight:600;padding:7px 16px;border-radius:8px;cursor:pointer;">Close</button>
+            <button type="button" onclick="printReceiptVoucher()" style="background:#10b981;border:none;color:#fff;font-weight:700;padding:7px 18px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+                <i class="bi bi-printer"></i> Print Receipt
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showReceiptModal(id, plan, amount, method, txId, date, status) {
+        document.getElementById('mPlanName').textContent = plan;
+        document.getElementById('mAmount').textContent = '₹' + amount;
+        document.getElementById('mMethod').textContent = method;
+        document.getElementById('mTxId').textContent = txId || ('#TRX-' + id);
+        document.getElementById('mDate').textContent = date;
+        
+        const badge = document.getElementById('mStatusBadge');
+        if (status === 'Success' || status === 'Active') {
+            badge.textContent = 'PAID / ACTIVE';
+            badge.style.background = '#dcfce7';
+            badge.style.color = '#166534';
+            badge.style.border = '1px solid #86efac';
+        } else if (status === 'Pending') {
+            badge.textContent = 'PENDING APPROVAL';
+            badge.style.background = '#fef3c7';
+            badge.style.color = '#92400e';
+            badge.style.border = '1px solid #fde68a';
+        } else {
+            badge.textContent = status.toUpperCase();
+            badge.style.background = '#fee2e2';
+            badge.style.color = '#991b1b';
+            badge.style.border = '1px solid #fca5a5';
+        }
+
+        document.getElementById('receiptModal').style.display = 'flex';
+    }
+
+    function closeReceiptModal() {
+        document.getElementById('receiptModal').style.display = 'none';
+    }
+        
+        const badge = document.getElementById('mStatusBadge');
+        if (status === 'Success' || status === 'Active') {
+            badge.textContent = 'PAID / ACTIVE';
+            badge.style.background = '#dcfce7';
+            badge.style.color = '#166534';
+            badge.style.border = '1px solid #86efac';
+        } else if (status === 'Pending') {
+            badge.textContent = 'PENDING APPROVAL';
+            badge.style.background = '#fef3c7';
+            badge.style.color = '#92400e';
+            badge.style.border = '1px solid #fde68a';
+        } else {
+            badge.textContent = status.toUpperCase();
+            badge.style.background = '#fee2e2';
+            badge.style.color = '#991b1b';
+            badge.style.border = '1px solid #fca5a5';
+        }
+
+        var modal = new bootstrap.Modal(document.getElementById('receiptModal'));
+        modal.show();
+    }
+
+    function printReceiptVoucher() {
+        const content = document.getElementById('receiptPrintArea').innerHTML;
+        const win = window.open('', '', 'height=600,width=800');
+        win.document.write('<html><head><title>Subscription Payment Receipt</title>');
+        win.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">');
+        win.document.write('<style>body{font-family:"Inter",sans-serif;padding:30px;}</style></head><body>');
+        win.document.write(content);
+        win.document.write('</body></html>');
+        win.document.close();
+        win.focus();
+        setTimeout(() => { win.print(); win.close(); }, 350);
+    }
+</script>
+

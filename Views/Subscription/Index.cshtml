@@ -1,0 +1,347 @@
+@model CrmLeadManagement.Models.AdminSubscriptionViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Subscription & Plans";
+    ViewData["ActivePage"] = "AdminSubscription";
+
+    var currentSub = Model.CurrentSubscription;
+    var isTrial = currentSub == null || string.Equals(currentSub.Status, "Trial", StringComparison.OrdinalIgnoreCase);
+    var isExpired = currentSub?.IsExpired ?? false;
+    var currentPlanId = currentSub?.PlanId ?? 0;
+    var renewPlanId = currentPlanId > 0 ? currentPlanId : (Model.Plans.FirstOrDefault(p => p.Price > 0)?.Id ?? 1);
+
+    var userPct = Model.MaxUsers > 0 ? Math.Min(100, (int)Math.Round((double)Model.CurrentUsersCount / Model.MaxUsers * 100)) : 0;
+    var leadPct = Model.MaxLeads > 0 ? Math.Min(100, (int)Math.Round((double)Model.CurrentLeadsCount / Model.MaxLeads * 100)) : 0;
+}
+
+<div class="content-header" style="margin-bottom: 24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="font-size:24px;font-weight:800;color:var(--ink-900);margin:0;">Subscription &amp; Plans</h1>
+                <span style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;">
+                    <i class="bi bi-shield-lock-fill"></i> SaaS Management
+                </span>
+            </div>
+            <p style="color:var(--ink-500);font-size:13.5px;margin:4px 0 0 0;">
+                Review real-time subscription details, current resource limits, and upgrade or renew plans.
+            </p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+            <a asp-controller="Subscription" asp-action="PaymentStatus" class="btn" style="background:#f8fafc;border:1px solid #cbd5e1;color:var(--ink-700);font-weight:700;padding:8px 14px;border-radius:8px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                <i class="bi bi-receipt"></i> Payment History
+            </a>
+            <span style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;">
+                <i class="bi bi-building"></i> @Model.CompanyName &bull; Admin ID: @Model.AdminCode
+            </span>
+        </div>
+    </div>
+</div>
+
+@if (isExpired || Context.Request.Query["expired"] == "true")
+{
+    <div class="alert alert-danger" style="background:#fee2e2;border:2px solid #ef4444;color:#991b1b;padding:16px 20px;border-radius:12px;margin-bottom:24px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 12px rgba(239,68,68,0.12);">
+        <i class="bi bi-exclamation-octagon-fill" style="font-size:32px;color:#dc2626;flex-shrink:0;"></i>
+        <div>
+            <div style="font-size:16px;font-weight:800;color:#991b1b;margin-bottom:2px;">Subscription Expired &bull; CRM Limits Locked</div>
+            <div style="font-size:13px;color:#7f1d1d;">Your subscription period has ended. Creating new leads, projects, or team members is paused until renewed. Please choose a plan below to reactivate your workspace immediately via Razorpay or Bank Transfer.</div>
+        </div>
+    </div>
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success" style="background:#dcfce7;border:1px solid #86efac;color:#166534;padding:12px 16px;border-radius:8px;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+        <i class="bi bi-check-circle-fill" style="font-size:18px;"></i>
+        <span>@TempData["SuccessMessage"]</span>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger" style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:12px 16px;border-radius:8px;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size:18px;"></i>
+        <span>@TempData["ErrorMessage"]</span>
+    </div>
+}
+
+@if (Model.PendingBankRequest != null)
+{
+    <div class="alert alert-warning" style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;padding:14px 18px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <i class="bi bi-hourglass-split" style="font-size:22px;color:#d97706;"></i>
+            <div>
+                <strong style="font-size:14px;">Bank Transfer Request #@Model.PendingBankRequest.Id is Under Review</strong>
+                <div style="font-size:12.5px;color:#78350f;margin-top:2px;">
+                    Plan: <strong>@Model.PendingBankRequest.PlanName (@Model.PendingBankRequest.BillingInterval)</strong> &bull; Amount: <strong>₹@Model.PendingBankRequest.Amount.ToString("N2")</strong> &bull; Submitted on @Model.PendingBankRequest.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")
+                </div>
+            </div>
+        </div>
+        <span style="background:#fef3c7;border:1px solid #f59e0b;color:#b45309;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;">
+            Awaiting SuperAdmin Approval
+        </span>
+    </div>
+}
+
+<!-- ================= COMPREHENSIVE SUBSCRIPTION DASHBOARD CARD ================= -->
+<div style="background:#ffffff;border:1px solid var(--border-color);border-radius:16px;padding:24px 28px;margin-bottom:32px;box-shadow:0 4px 14px rgba(0,0,0,0.04);">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:20px;padding-bottom:22px;border-bottom:1px solid #f1f5f9;">
+        <div style="display:flex;align-items:center;gap:16px;">
+            <div style="width:56px;height:56px;border-radius:14px;background:#eff6ff;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:26px;">
+                <i class="bi bi-shield-check"></i>
+            </div>
+            <div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+                    <span style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-500);">Current Plan:</span>
+                    <span style="font-size:20px;font-weight:800;color:var(--ink-900);">@(currentSub?.PlanName ?? "Free Trial")</span>
+                    
+                    @if (isTrial)
+                    {
+                        <span style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;display:inline-flex;align-items:center;gap:4px;">
+                            <i class="bi bi-gift-fill"></i> Free Trial (@(currentSub?.DaysRemaining ?? 0) days remaining)
+                        </span>
+                    }
+                    else if (isExpired)
+                    {
+                        <span style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;display:inline-flex;align-items:center;gap:4px;">
+                            <i class="bi bi-exclamation-circle-fill"></i> Expired
+                        </span>
+                    }
+                    else
+                    {
+                        <span style="background:#dcfce7;color:#166534;border:1px solid #86efac;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;display:inline-flex;align-items:center;gap:4px;">
+                            <i class="bi bi-check-circle-fill"></i> @(currentSub?.Status ?? "Active")
+                        </span>
+                    }
+                </div>
+                <div style="font-size:13px;color:var(--ink-600);display:flex;flex-wrap:wrap;gap:16px;">
+                    <span><i class="bi bi-calendar3"></i> Expiry Date: <strong style="color:var(--ink-900);">@(currentSub?.EndDate.ToString("dd MMM yyyy") ?? "—")</strong></span>
+                    <span><i class="bi bi-hourglass-split"></i> Remaining Days: <strong style="color:@(currentSub?.DaysRemaining <= 3 ? "#dc2626" : "#16a34a");">@(currentSub?.DaysRemaining ?? 0) Days</strong></span>
+                    <span><i class="bi bi-credit-card-2-front"></i> Method: <strong style="color:var(--ink-800);">@(currentSub?.PaymentMethod ?? "Free Trial")</strong></span>
+                    @if (currentSub?.PurchaseDate != null)
+                    {
+                        <span><i class="bi bi-bag-check"></i> Purchased: <strong style="color:var(--ink-800);">@currentSub.PurchaseDate.Value.ToString("dd MMM yyyy")</strong></span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD ACTION BUTTONS -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <a href="#plans-grid" class="btn" style="background:#2563eb;color:#ffffff;font-weight:700;padding:9px 16px;border-radius:8px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 4px rgba(37,99,235,0.2);">
+                <i class="bi bi-arrow-up-circle-fill"></i> Upgrade Plan
+            </a>
+            <a asp-controller="Subscription" asp-action="Subscribe" asp-route-id="@renewPlanId" class="btn" style="background:#0f172a;color:#ffffff;font-weight:700;padding:9px 16px;border-radius:8px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                <i class="bi bi-arrow-clockwise"></i> Renew Plan
+            </a>
+            <a href="#payment-history" class="btn" style="background:#f1f5f9;color:var(--ink-800);border:1px solid #cbd5e1;font-weight:700;padding:9px 16px;border-radius:8px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                <i class="bi bi-receipt"></i> View Payment History
+            </a>
+        </div>
+    </div>
+
+    <!-- DYNAMIC USER CAPACITY (USER WISE) -->
+    <div style="margin-top:22px;">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-500);">
+                    <i class="bi bi-people-fill" style="color:var(--brand-600);"></i> Users Capacity
+                </span>
+                <span style="font-size:12px;font-weight:700;color:@(Model.CurrentUsersCount >= Model.MaxUsers ? "#dc2626" : "var(--brand-600)");">
+                    @(Model.CurrentUsersCount >= Model.MaxUsers ? "Limit Reached" : $"{Math.Max(0, Model.MaxUsers - Model.CurrentUsersCount)} Seats Available")
+                </span>
+            </div>
+            <div style="font-size:24px;font-weight:800;color:var(--ink-900);margin-bottom:10px;">
+                <span style="color:var(--brand-600);">@Model.CurrentUsersCount</span> <span style="font-size:16px;color:var(--ink-400);">/ @Model.MaxUsers Users</span>
+            </div>
+            <div style="width:100%;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+                <div style="width:@userPct%;height:100%;background:@(userPct >= 100 ? "#dc2626" : (userPct >= 80 ? "#f59e0b" : "#2563eb"));border-radius:4px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= PRICING PLANS GRID (DYNAMIC DATABASE TIERS) ================= -->
+<div id="plans-grid" style="margin-bottom:36px;">
+    <div style="margin-bottom:20px;">
+        <h2 style="font-size:20px;font-weight:800;color:var(--ink-900);margin:0 0 4px 0;">Available Pricing Plans</h2>
+        <p style="color:var(--ink-500);font-size:13.5px;margin:0;">Select a plan to immediately scale your user capacity without manual database intervention.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:20px;">
+        @foreach (var plan in Model.Plans)
+        {
+            var isTrialPlan = plan.Price == 0 || plan.Code == "trial";
+            var isCurrent = (plan.Id == currentPlanId) || string.Equals(plan.Name, currentSub?.PlanName, StringComparison.OrdinalIgnoreCase);
+
+            <div style="background:#fff;border:@(plan.IsPopular ? "2px solid #2563eb" : "1px solid var(--border-color)");border-radius:14px;padding:24px;position:relative;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                
+                @if (plan.IsPopular)
+                {
+                    <div style="position:absolute;top:-12px;right:20px;background:#2563eb;color:#fff;font-size:11px;font-weight:800;padding:3px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:0.05em;">
+                        MOST POPULAR
+                    </div>
+                }
+
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                    <h3 style="font-size:18px;font-weight:800;color:var(--ink-900);margin:0;">@plan.Name</h3>
+                    @if (isCurrent && !isExpired)
+                    {
+                        <span style="background:#dbeafe;color:#1e40af;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;border:1px solid #bfdbfe;">
+                            <i class="bi bi-check-circle-fill"></i> Current Plan
+                        </span>
+                    }
+                    else if (plan.IsActive)
+                    {
+                        <span style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;">Active</span>
+                    }
+                    else
+                    {
+                        <span style="background:#fee2e2;color:#991b1b;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;">Inactive</span>
+                    }
+                </div>
+
+                <p style="color:var(--ink-500);font-size:13px;min-height:36px;margin:0 0 16px 0;">
+                    @plan.Description
+                </p>
+
+                <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #f1f5f9;">
+                    <span style="font-size:32px;font-weight:800;color:var(--ink-900);">
+                        @(plan.Price > 0 ? $"₹{plan.Price:N0}" : "Free")
+                    </span>
+                    <span style="color:var(--ink-400);font-size:13px;font-weight:600;">
+                        /@plan.BillingInterval
+                    </span>
+                </div>
+
+                <div style="flex:1;margin-bottom:20px;">
+                    <div style="font-size:12px;font-weight:700;color:var(--ink-800);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:12px;">
+                        INCLUDED QUOTAS &amp; FEATURES:
+                    </div>
+                    <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:9px;font-size:13px;color:var(--ink-700);">
+                        <li style="display:flex;align-items:center;gap:8px;">
+                            <i class="bi bi-check-circle-fill" style="font-size:14px;color:#2563eb;"></i>
+                            <span>User Capacity: <strong>Up to @plan.MaxTeamMembers Users</strong></span>
+                        </li>
+                        @if (plan.TrialDays > 0 && isTrialPlan)
+                        {
+                            <li style="display:flex;align-items:center;gap:8px;">
+                                <i class="bi bi-check-circle-fill" style="font-size:14px;color:#d97706;"></i>
+                                <span>Free Trial: <strong>@plan.TrialDays Days</strong></span>
+                            </li>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(plan.Features))
+                        {
+                            foreach (var f in plan.Features.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                            {
+                                <li style="display:flex;align-items:center;gap:8px;">
+                                    <i class="bi bi-check2 text-primary" style="font-size:14px;font-weight:bold;"></i>
+                                    <span>@f</span>
+                                </li>
+                            }
+                        }
+                    </ul>
+                </div>
+
+                <!-- ACTION BUTTON: SUBSCRIBE TO PLAN / START TRIAL / CURRENT PLAN -->
+                <div style="margin-top:auto;padding-top:16px;border-top:1px solid #f1f5f9;">
+                    @if (isCurrent && !isExpired && !isTrial)
+                    {
+                        <button type="button" class="btn" disabled style="width:100%;background:#f1f5f9;color:#64748b;font-weight:700;padding:10px;border-radius:8px;border:1px solid #cbd5e1;cursor:default;display:flex;align-items:center;justify-content:center;gap:6px;">
+                            <i class="bi bi-check-circle-fill text-success"></i> Current Active Plan
+                        </button>
+                    }
+                    else if (isCurrent && isTrialPlan && !isExpired)
+                    {
+                        <button type="button" class="btn" disabled style="width:100%;background:#fef3c7;color:#92400e;font-weight:700;padding:10px;border-radius:8px;border:1px solid #fde68a;cursor:default;display:flex;align-items:center;justify-content:center;gap:6px;">
+                            <i class="bi bi-gift-fill"></i> Current Active Trial
+                        </button>
+                    }
+                    else if (isTrialPlan)
+                    {
+                        <form method="post" asp-controller="Subscription" asp-action="StartTrial">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="planId" value="@plan.Id" />
+                            <button type="submit" class="btn" style="width:100%;background:#0f172a;color:#fff;font-weight:700;padding:10px 16px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 1px 3px rgba(0,0,0,0.1);transition:all 0.15s ease;">
+                                <i class="bi bi-clock"></i> Start Free Trial (@plan.TrialDays Days)
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a asp-controller="Subscription" asp-action="Subscribe" asp-route-id="@plan.Id" class="btn" style="width:100%;background:@(plan.IsPopular ? "#2563eb" : "#0f172a");color:#fff;font-weight:700;padding:10px 16px;border-radius:8px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 1px 3px rgba(0,0,0,0.1);transition:all 0.15s ease;">
+                            <i class="bi bi-lightning-charge-fill"></i> Subscribe to Plan
+                        </a>
+                    }
+                </div>
+
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ================= RECENT PAYMENT & TRANSACTION HISTORY SECTION ================= -->
+<div id="payment-history" style="background:#ffffff;border:1px solid var(--border-color);border-radius:16px;padding:24px 28px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+            <h2 style="font-size:18px;font-weight:800;color:var(--ink-900);margin:0 0 4px 0;">
+                <i class="bi bi-clock-history text-primary"></i> Payment &amp; Invoice History
+            </h2>
+            <p style="color:var(--ink-500);font-size:13px;margin:0;">Audit trail of subscription orders, payments, and gateway statuses.</p>
+        </div>
+        <a asp-controller="Subscription" asp-action="PaymentStatus" class="btn btn-sm" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-weight:700;padding:6px 14px;border-radius:6px;text-decoration:none;">
+            View Detailed Invoices <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+
+    @if (Model.RecentPayments != null && Model.RecentPayments.Any())
+    {
+        <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                    <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;text-align:left;color:var(--ink-600);font-weight:700;">
+                        <th style="padding:10px 14px;">Transaction / Order</th>
+                        <th style="padding:10px 14px;">Plan</th>
+                        <th style="padding:10px 14px;">Amount</th>
+                        <th style="padding:10px 14px;">Payment Method</th>
+                        <th style="padding:10px 14px;">Status</th>
+                        <th style="padding:10px 14px;">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.RecentPayments)
+                    {
+                        var statusBg = p.Status == "Success" ? "#dcfce7" : (p.Status == "Failed" ? "#fee2e2" : (p.Status == "Cancelled" ? "#f1f5f9" : "#fef3c7"));
+                        var statusColor = p.Status == "Success" ? "#166534" : (p.Status == "Failed" ? "#991b1b" : (p.Status == "Cancelled" ? "#475569" : "#92400e"));
+                        <tr style="border-bottom:1px solid #f1f5f9;">
+                            <td style="padding:12px 14px;font-weight:600;color:var(--ink-800);">
+                                <div>@(string.IsNullOrWhiteSpace(p.TransactionId) ? p.OrderId : p.TransactionId)</div>
+                                @if (!string.IsNullOrWhiteSpace(p.OrderId) && p.OrderId != p.TransactionId)
+                                {
+                                    <div style="font-size:11px;color:var(--ink-400);">Ref: @p.OrderId</div>
+                                }
+                            </td>
+                            <td style="padding:12px 14px;font-weight:700;color:var(--ink-900);">@p.PlanName</td>
+                            <td style="padding:12px 14px;font-weight:800;color:var(--ink-900);">₹@p.Amount.ToString("N2")</td>
+                            <td style="padding:12px 14px;color:var(--ink-700);">@p.PaymentMethod</td>
+                            <td style="padding:12px 14px;">
+                                <span style="background:@statusBg;color:@statusColor;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;">
+                                    @p.Status
+                                </span>
+                            </td>
+                            <td style="padding:12px 14px;color:var(--ink-500);white-space:nowrap;">
+                                @p.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div style="text-align:center;padding:32px 20px;color:var(--ink-400);">
+            <i class="bi bi-wallet2" style="font-size:36px;display:block;margin-bottom:8px;"></i>
+            No previous payment transactions found.
+        </div>
+    }
+</div>
